@@ -1,20 +1,23 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import connectDB from "./config/db.js";
+import auth_routes from "./routes/auth_routes.js";
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:3000" }));
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Rymble backend running");
-});
+// Routes
+app.use("/api/auth", auth_routes);
 
-app.get("/ping", (req, res) => {
-  res.json({ message: "pong" });
-});
-
+// Connect DB and start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on -> http://localhost:${PORT}`);
+connectDB().then(() => {
+  console.log("🛰  Mission Control: Systems nominal.");
+  app.listen(PORT, () =>
+    console.log(`🌍 Ground control online at http://localhost:${PORT}`)
+  );
 });
