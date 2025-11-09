@@ -1,30 +1,17 @@
 "use client";
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth_context";
 
 export default function Home() {
-  const [response, setResponse] = useState<string | null>(null);
+  const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
-    let isMounted = true;
+    if (user) router.push("/dashboard");
+    else router.push("/login");
+  }, [user, router]);
 
-    axios
-      .get("http://localhost:5000/ping")
-      .then((res) => {
-        if (isMounted) setResponse(res.data.message);
-      })
-      .catch((err) => console.error("Error fetching data:", err));
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  return (
-    <div>
-      <h1>Welcome to Rymble</h1>
-      <p>A minimal chat application.</p>
-      {response && <p>Server Response: {response}</p>}
-    </div>
-  );
+  return null;
 }
