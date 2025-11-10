@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
 import { getErrorMessage } from "@/utils/error";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, login, user } = useAuth(); // make sure login is available
+  const router = useRouter();
+
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +39,14 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      // 1. Register the user
       await register(username, email, password);
+
+      // 2. Auto-login
+      await login(email, password);
+
+      // 3. Redirect to dashboard
+      router.replace("/dashboard");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

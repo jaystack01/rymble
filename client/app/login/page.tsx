@@ -1,16 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
 import { getErrorMessage } from "@/utils/error";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Redirect already logged-in users
+  useEffect(() => {
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +34,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
+
+      // redirect to dashboard after successful login
+      router.replace("/dashboard");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
