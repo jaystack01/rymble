@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useSocket } from "@/context/socket_context";
+import { useSocket, usePresence } from "@/context/socket_context";
 import { useAuth } from "@/context/auth_context";
 import api from "@/lib/api";
 
@@ -13,6 +13,7 @@ export default function Sidebar() {
 
   const [channels, setChannels] = useState([]);
   const [dms, setDms] = useState([]);
+  const { onlineUsers, roomPresence } = usePresence();
 
   useEffect(() => {
     let mounted = true;
@@ -69,7 +70,16 @@ export default function Sidebar() {
                 : "hover:bg-gray-700"
             }`}
           >
-            #{ch.name}
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                #{ch.name}
+              </span>
+              <span className="text-sm text-gray-400">
+                {roomPresence[ch._id]?.onlineCount ? (
+                  <span className="px-2 py-0.5 bg-gray-700 rounded">{roomPresence[ch._id].onlineCount} online</span>
+                ) : null}
+              </span>
+            </div>
           </li>
         ))}
       </ul>
@@ -87,7 +97,16 @@ export default function Sidebar() {
                 : "hover:bg-gray-700"
             }`}
           >
-            {dm.username}
+            <div className="flex items-center">
+              <span className="mr-2">
+                {onlineUsers.includes(dm._id) ? (
+                  <span className="inline-block w-2 h-2 bg-green-400 rounded-full" />
+                ) : (
+                  <span className="inline-block w-2 h-2 bg-gray-500 rounded-full" />
+                )}
+              </span>
+              <span>{dm.username}</span>
+            </div>
           </li>
         ))}
       </ul>
