@@ -6,12 +6,12 @@ import { useAuth } from "@/context/auth_context";
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (user) router.push("/dashboard");
-    else router.push("/login");
-  }, [user, router]);
+    if (loading) return;
+    router.push(user ? "/workspace" : "/login");
+  }, [user, loading, router]);
 
   return null;
 }

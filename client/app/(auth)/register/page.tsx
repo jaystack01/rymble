@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
 import { getErrorMessage } from "@/utils/error";
+import api from "@/lib/api";
 
 export default function RegisterPage() {
-  const { register, login, user } = useAuth(); // make sure login is available
+  const { register, login, user, token } = useAuth();
   const router = useRouter();
 
   const [username, setUsername] = useState("");
@@ -18,10 +19,28 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      router.replace("/dashboard");
-    }
-  }, [user, router]);
+    const checkWorkspaces = async () => {
+      if (!user || !token) return;
+
+      try {
+        const { data } = await api.get("/workspaces", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.length === 0) {
+          router.replace("/create-workspace");
+        } else {
+          const firstWorkspace = data[0];
+          const firstChannel = firstWorkspace.channels?.[0]?.name || "general";
+          router.replace(`/chat/${firstWorkspace.name}/${firstChannel}`);
+        }
+      } catch (err) {
+        console.error("Error checking workspaces:", err);
+      }
+    };
+
+    if (user) checkWorkspaces();
+  }, [user, token, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,14 +58,13 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      // 1. Register the user
+      // 1. Register user
       await register(username, email, password);
 
       // 2. Auto-login
       await login(email, password);
 
-      // 3. Redirect to dashboard
-      router.replace("/dashboard");
+      // 3. Redirect handled automatically in useEffect above
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

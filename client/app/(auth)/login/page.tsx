@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
 import { getErrorMessage } from "@/utils/error";
+import api from "@/lib/api";
 
 export default function LoginPage() {
-  const { login, user } = useAuth();
+  const { login, user, token } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -17,10 +18,28 @@ export default function LoginPage() {
 
   // Redirect already logged-in users
   useEffect(() => {
-    if (user) {
-      router.replace("/dashboard");
-    }
-  }, [user, router]);
+    const checkWorkspaces = async () => {
+      if (!user || !token) return;
+
+      try {
+        const { data } = await api.get("/workspaces", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.length === 0) {
+          router.replace("/create-workspace");
+        } else {
+          const firstWorkspace = data[0];
+          const firstChannel = firstWorkspace.channels?.[0]?.name || "general";
+          router.replace(`/chat/${firstWorkspace.name}/${firstChannel}`);
+        }
+      } catch (err) {
+        console.error("Error checking workspaces:", err);
+      }
+    };
+
+    if (user) checkWorkspaces();
+  }, [user, token, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +54,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
 
-      // redirect to dashboard after successful login
-      router.replace("/dashboard");
+      // The redirect will happen automatically in the effect above
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
