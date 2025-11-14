@@ -79,7 +79,10 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
     };
 
     socket.on("channel:created", handleNewChannel);
-    return () => socket.off("channel:created", handleNewChannel);
+
+    return () => {
+      socket.off("channel:created", handleNewChannel);
+    };
   }, [socket, currentWorkspace]);
 
   const value: ChannelContextType = {
