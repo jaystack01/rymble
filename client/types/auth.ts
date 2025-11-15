@@ -3,6 +3,8 @@ export interface User {
   username: string;
   email: string;
   createdAt?: string;
+  lastWorkspaceId?: string;
+  lastChannelIds?: { [workspaceId: string]: string };
 }
 
 export interface AuthContextType {
@@ -16,4 +18,5 @@ export interface AuthContextType {
     password: string
   ) => Promise<void>;
   logout: () => void;
+  updateUser: (fields: Partial<User>) => Promise<void>;
 }

@@ -16,14 +16,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Logout function
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("token");
   };
 
-  // Fetch user using token
   const fetchUser = async (jwt: string) => {
     try {
       const { data } = await api.get<User>("/auth/me", {
@@ -37,7 +35,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Restore token from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("token");
     if (stored) {
@@ -47,14 +44,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Fetch user whenever token changes
   useEffect(() => {
     if (token) {
       fetchUser(token);
     }
   }, [token]);
 
-  // Login function
   const login = async (email: string, password: string) => {
     const { data } = await api.post<{ token: string; user: User }>(
       "/auth/login",
@@ -65,7 +60,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(data.user);
   };
 
-  // Register function
   const register = async (
     username: string,
     email: string,
@@ -80,9 +74,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(data.user);
   };
 
+  // -------------------------------
+  // UPDATE USER (new function)
+  // -------------------------------
+  const updateUser = async (fields: Partial<User>) => {
+    if (!token) return;
+
+    const { data } = await api.patch<User>("/users/me", fields, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setUser(data);
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, token, login, register, logout, loading }}
+      value={{
+        user,
+        token,
+        login,
+        register,
+        logout,
+        loading,
+        updateUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

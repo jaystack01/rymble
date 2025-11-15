@@ -15,9 +15,18 @@ export default function ChatWindow() {
 
   const channelId = currentChannel?._id;
 
-  // Fetch messages when channel changes
+  const fetchedRef = useRef<string | null>(null);
+
+  // Reset & fetch messages once per channel
   useEffect(() => {
     if (!channelId) return;
+
+    // reset UI
+    Promise.resolve().then(() => setMessages([]));
+
+    // already fetched once for this channel?
+    if (fetchedRef.current === channelId) return;
+    fetchedRef.current = channelId;
 
     const fetchMessages = async () => {
       try {

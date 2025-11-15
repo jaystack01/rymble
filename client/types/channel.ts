@@ -4,7 +4,12 @@ export interface ChannelContextType {
   channels: Channel[];
   members: Member[];
   currentChannel: Channel | null;
+
   setCurrentChannel: (channel: Channel | null) => void;
+
+  // Correct type
   fetchChannels: () => Promise<void>;
-  createChannel: (workspaceId: string, name: string) => Promise<void>;
+
+  // Correct type
+  createChannel: (workspaceId: string, name: string) => Promise<Channel>;
 }

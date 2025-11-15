@@ -6,8 +6,17 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
-    lastWorkspaceId: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace" },
-    lastChannelId: { type: mongoose.Schema.Types.ObjectId, ref: "Channel" },
+
+    lastWorkspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workspace",
+    },
+
+    lastChannelIds: {
+      type: Map,
+      of: mongoose.Schema.Types.ObjectId, // Channel IDs
+      default: {},
+    },
   },
   { timestamps: true }
 );

@@ -20,9 +20,7 @@ export default function Home() {
       if (data.length === 0) {
         router.replace("/create-workspace");
       } else {
-        const firstWorkspace = data[0];
-        const firstChannel = firstWorkspace.channels?.[0]?.name || "general";
-        router.replace(`/chat/${firstWorkspace.name}/${firstChannel}`);
+        router.replace("/chat");
       }
     } catch (err) {
       console.error("Error checking workspaces:", err);
