@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
 import { getErrorMessage } from "@/utils/error";
-import api from "@/lib/api";
 
 export default function LoginPage() {
   const { login, user, token } = useAuth();
@@ -16,30 +15,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect already logged-in users
   useEffect(() => {
-    const checkWorkspaces = async () => {
-      if (!user || !token) return;
+    if (user && token) {
+      router.replace("/chat");
+    }
+  }, [user, token]);
 
-      try {
-        const { data } = await api.get("/workspaces", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (data.length === 0) {
-          router.replace("/create-workspace");
-        } else {
-          const firstWorkspace = data[0];
-          const firstChannel = firstWorkspace.channels?.[0]?.name || "general";
-          router.replace(`/chat/${firstWorkspace.name}/${firstChannel}`);
-        }
-      } catch (err) {
-        console.error("Error checking workspaces:", err);
-      }
-    };
-
-    if (user) checkWorkspaces();
-  }, [user, token, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

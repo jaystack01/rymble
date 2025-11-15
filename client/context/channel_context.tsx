@@ -73,8 +73,8 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const { data } = await api.post<Channel>(
-        `/channels/${workspaceId}`,
-        { name },
+        `/channels`,
+        { name, workspaceId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
