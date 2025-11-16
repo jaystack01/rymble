@@ -1,8 +1,12 @@
 export interface User {
-  _id?: string;
-  username: string;
+  _id: string;
+  username: string; // Unique identifier (login identity)
+  displayName: string; // Visible name in chat (editable)
   email: string;
-  createdAt?: string;
+
+  avatarUrl?: string | null; // Default or user-selected avatar
+  createdAt: string;
+
   lastWorkspaceId?: string;
   lastChannelIds?: { [workspaceId: string]: string };
 }

@@ -3,25 +3,49 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true },
+    username: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 20,
+      match: [
+        /^[a-zA-Z0-9_]+$/,
+        "Username can only contain letters, numbers, or underscores",
+      ],
+    },
+
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+    },
+
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
 
     lastWorkspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workspace",
+      default: null,
     },
 
     lastChannelIds: {
       type: Map,
-      of: mongoose.Schema.Types.ObjectId, // Channel IDs
+      of: mongoose.Schema.Types.ObjectId,
       default: {},
     },
   },
   { timestamps: true }
 );
 
-// hash password before saving
+// Hash before save
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
@@ -29,10 +53,9 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// match password for login
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+// Compare password
+userSchema.methods.matchPassword = function (entered) {
+  return bcrypt.compare(entered, this.password);
 };
 
-const User = mongoose.model("User", userSchema);
-export default User;
+export default mongoose.model("User", userSchema);

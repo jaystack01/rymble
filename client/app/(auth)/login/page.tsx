@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
-import { getErrorMessage } from "@/utils/error";
+import { parseFieldError } from "@/utils/error";
 
 export default function LoginPage() {
   const { login, user, token } = useAuth();
@@ -12,32 +12,33 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && token) {
-      router.replace("/chat");
-    }
+    if (user && token) router.replace("/chat");
   }, [user, token]);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setFormError("");
+    setFieldErrors({});
 
     if (!email || !password) {
-      setError("All fields are required");
+      setFormError("All fields are required");
       return;
     }
 
     setLoading(true);
     try {
       await login(email, password);
-
-      // The redirect will happen automatically in the effect above
     } catch (err) {
-      setError(getErrorMessage(err));
+      const parsed = parseFieldError(err);
+      if (parsed.field === "form") setFormError(parsed.message);
+      else setFieldErrors({ [parsed.field]: parsed.message });
     } finally {
       setLoading(false);
     }
@@ -51,26 +52,36 @@ export default function LoginPage() {
       >
         <h2 className="text-2xl font-bold text-center">Login</h2>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {formError && <p className="text-red-500 text-sm">{formError}</p>}
 
         <input
-          type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setFieldErrors({ ...fieldErrors, email: "" });
+          }}
+          className="w-full p-2 rounded bg-gray-700"
         />
+        {fieldErrors.email && (
+          <p className="text-red-500 text-xs">{fieldErrors.email}</p>
+        )}
 
         <input
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setFieldErrors({ ...fieldErrors, password: "" });
+          }}
+          className="w-full p-2 rounded bg-gray-700"
         />
+        {fieldErrors.password && (
+          <p className="text-red-500 text-xs">{fieldErrors.password}</p>
+        )}
 
         <button
-          type="submit"
           disabled={loading}
           className="w-full p-2 bg-purple-600 hover:bg-purple-700 rounded font-semibold"
         >

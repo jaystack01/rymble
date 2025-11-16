@@ -20,9 +20,14 @@ export const createWorkspace = async (req, res) => {
       { name: "random", workspaceId: newWorkspace._id },
     ];
 
-    await Channel.insertMany(defaultChannels);
+    const channels = await Channel.insertMany(defaultChannels);
 
-    return res.status(201).json(newWorkspace);
+    const response = {
+      workspace: newWorkspace.toObject(),
+      channels,
+    }; 
+
+    return res.status(201).json(response);
   } catch (error) {
     return res.status(500).json({ message: "Error creating workspace", error });
   }

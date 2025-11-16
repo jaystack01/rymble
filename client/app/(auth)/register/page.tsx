@@ -4,50 +4,58 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth_context";
-import { getErrorMessage } from "@/utils/error";
+import { parseFieldError } from "@/utils/error";
 
 export default function RegisterPage() {
-  const { register, login, user, token } = useAuth();
+  const { register, user, token } = useAuth();
   const router = useRouter();
 
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
+
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user && token) {
+      // Newly registered users always go to create-workspace
       router.replace("/chat");
     }
   }, [user, token]);
 
+
+  const update = (key: string, value: string) => {
+    setForm({ ...form, [key]: value });
+    setFieldErrors({ ...fieldErrors, [key]: "" });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setFormError("");
+    setFieldErrors({});
 
-    if (!username || !email || !password || !confirmPassword) {
-      setError("All fields are required");
+    if (!form.username || !form.email || !form.password || !form.confirm) {
+      setFormError("All fields are required");
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    if (form.password !== form.confirm) {
+      setFieldErrors({ confirm: "Passwords do not match" });
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Register user
-      await register(username, email, password);
-
-      // 2. Auto-login
-      await login(email, password);
-
-      // 3. Redirect handled automatically in useEffect above
+      await register(form.username, form.email, form.password);
     } catch (err) {
-      setError(getErrorMessage(err));
+      const parsed = parseFieldError(err);
+      if (parsed.field === "form") setFormError(parsed.message);
+      else setFieldErrors({ [parsed.field]: parsed.message });
     } finally {
       setLoading(false);
     }
@@ -61,42 +69,51 @@ export default function RegisterPage() {
       >
         <h2 className="text-2xl font-bold text-center">Register</h2>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {formError && <p className="text-red-500 text-sm">{formError}</p>}
 
         <input
-          type="text"
           placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
+          value={form.username}
+          onChange={(e) => update("username", e.target.value)}
+          className="w-full p-2 rounded bg-gray-700"
         />
+        {fieldErrors.username && (
+          <p className="text-red-500 text-xs">{fieldErrors.username}</p>
+        )}
 
         <input
-          type="email"
           placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
+          value={form.email}
+          onChange={(e) => update("email", e.target.value)}
+          className="w-full p-2 rounded bg-gray-700"
         />
+        {fieldErrors.email && (
+          <p className="text-red-500 text-xs">{fieldErrors.email}</p>
+        )}
 
         <input
           type="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
+          value={form.password}
+          onChange={(e) => update("password", e.target.value)}
+          className="w-full p-2 rounded bg-gray-700"
         />
+        {fieldErrors.password && (
+          <p className="text-red-500 text-xs">{fieldErrors.password}</p>
+        )}
 
         <input
           type="password"
           placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 focus:outline-none"
+          value={form.confirm}
+          onChange={(e) => update("confirm", e.target.value)}
+          className="w-full p-2 rounded bg-gray-700"
         />
+        {fieldErrors.confirm && (
+          <p className="text-red-500 text-xs">{fieldErrors.confirm}</p>
+        )}
 
         <button
-          type="submit"
           disabled={loading}
           className="w-full p-2 bg-purple-600 hover:bg-purple-700 rounded font-semibold"
         >

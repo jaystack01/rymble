@@ -7,32 +7,39 @@ export const update_me = async (req, res) => {
       "avatar",
       "status",
       "lastWorkspaceId",
-      "lastChannelIds", // add new field
+      "lastChannelIds",
     ];
 
     const updates = {};
-
     for (const key of allowed) {
-      if (req.body[key] !== undefined) {
-        updates[key] = req.body[key];
-      }
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
 
-    // Ensure lastChannelIds is an object before saving
     if (updates.lastChannelIds && typeof updates.lastChannelIds !== "object") {
-      return res.status(400).json({ message: "Invalid lastChannelIds format" });
+      return res.status(400).json({
+        field: "lastChannelIds",
+        message: "Invalid channel map",
+      });
     }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: updates },
       { new: true }
-    ).select("-password");
+    );
 
-    res.json(user);
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        lastWorkspaceId: user.lastWorkspaceId,
+        lastChannelIds: user.lastChannelIds,
+      },
+    });
   } catch (err) {
-    console.error("Error updating user:", err);
+    console.error("Update error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
