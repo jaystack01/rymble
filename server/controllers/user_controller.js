@@ -7,7 +7,8 @@ export const update_me = async (req, res) => {
       "avatar",
       "status",
       "lastWorkspaceId",
-      "lastChannelIds", // special merge behavior
+      "lastChannelIds",
+      "displayName",
     ];
 
     const updates = {};
@@ -62,6 +63,8 @@ export const update_me = async (req, res) => {
         email: updatedUser.email,
         lastWorkspaceId: updatedUser.lastWorkspaceId,
         lastChannelIds: updatedUser.lastChannelIds,
+        displayName: updatedUser.displayName,
+        avatar: updatedUser.avatar,
       },
     });
   } catch (err) {

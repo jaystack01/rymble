@@ -5,6 +5,7 @@ import { useWorkspace } from "@/context/workspace_context";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth_context";
+import AvatarMenu from "@/components/ui/avatar_button";
 
 export default function WorkspaceSidebar() {
   const { user } = useAuth();
@@ -98,16 +99,14 @@ export default function WorkspaceSidebar() {
 
   return (
     <>
-      <aside className="w-20 bg-[#1a1d21] text-white h-screen flex flex-col items-center py-4 border-r border-gray-800">
-        <div className="flex-1 flex flex-col items-center gap-4 overflow-y-auto scrollbar-none">
+      <aside className="w-20 bg-[#1a1d21] text-white h-screen flex flex-col justify-between items-center py-4 border-r border-gray-800">
+        {/* TOP: Workspaces + Create */}
+        <div className="flex flex-col items-center gap-4 overflow-y-auto scrollbar-none">
           {Array.isArray(workspaces) &&
             workspaces.map((ws) => (
               <button
                 key={ws._id}
-                onClick={() => {
-                  if (typeof selectWorkspace === "function")
-                    selectWorkspace(ws);
-                }}
+                onClick={() => selectWorkspace?.(ws)}
                 title={ws.name}
                 className={cn(
                   "w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-semibold transition-all",
@@ -115,12 +114,12 @@ export default function WorkspaceSidebar() {
                     ? "bg-purple-600 text-white"
                     : "bg-gray-800 hover:bg-gray-700"
                 )}
-                aria-pressed={currentWorkspace?._id === ws._id}
               >
                 {ws.name?.charAt(0)?.toUpperCase() ?? "?"}
               </button>
             ))}
 
+          {/* Plus Button */}
           <button
             onClick={() => {
               manualDismissRef.current = false;
@@ -128,10 +127,14 @@ export default function WorkspaceSidebar() {
             }}
             className="w-12 h-12 flex items-center justify-center rounded-2xl bg-gray-800 hover:bg-gray-700 transition-all"
             title="Create new workspace"
-            aria-label="Create new workspace"
           >
             <Plus size={20} />
           </button>
+        </div>
+
+        {/* BOTTOM: Avatar menu */}
+        <div className="pb-2">
+          <AvatarMenu />
         </div>
       </aside>
 

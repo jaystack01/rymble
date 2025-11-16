@@ -4,7 +4,7 @@ export interface User {
   displayName: string; // Visible name in chat (editable)
   email: string;
 
-  avatarUrl?: string | null; // Default or user-selected avatar
+  avatar?: string | null; // Default or user-selected avatar
   createdAt: string;
 
   lastWorkspaceId?: string;

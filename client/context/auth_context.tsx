@@ -47,12 +47,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Fetch fresh user and validate token
     api
-      .get<User>("/auth/me", {
+      .get("/auth/me", {
         headers: { Authorization: `Bearer ${storedToken}` },
       })
       .then((res) => {
-        setUser(res.data);
-        localStorage.setItem("user", JSON.stringify(res.data));
+        setUser(res.data.user);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
       })
       .catch(() => {
         logout(); // invalid token

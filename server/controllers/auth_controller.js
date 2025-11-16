@@ -13,6 +13,8 @@ const sendUserResponse = (user, res) => {
       email: user.email,
       lastWorkspaceId: user.lastWorkspaceId,
       lastChannelIds: user.lastChannelIds,
+      displayName: user.displayName,
+      avatar: user.avatar,
     },
     token: createToken(user._id),
     expiresIn: 604800, // 7 days in seconds

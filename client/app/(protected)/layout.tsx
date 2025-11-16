@@ -1,4 +1,4 @@
-// app/(protected)/layout.tsx
+// app/(protected)//chat/layout.tsx
 "use client";
 
 import ProtectedRoute from "@/components/protected_route";
