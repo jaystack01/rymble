@@ -37,9 +37,14 @@ const userSchema = new mongoose.Schema(
     },
 
     lastChannelIds: {
-      type: Map,
-      of: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed,
       default: {},
+      validate: {
+        validator: function (obj) {
+          return Object.values(obj).every((v) => mongoose.isValidObjectId(v));
+        },
+        message: "All lastChannelIds values must be valid ObjectIds",
+      },
     },
   },
   { timestamps: true }

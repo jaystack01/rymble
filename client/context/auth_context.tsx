@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setUser(data);
+      setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data));
     } catch (err) {
       throw getErrorMessage(err);

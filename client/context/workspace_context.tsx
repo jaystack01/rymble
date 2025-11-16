@@ -18,7 +18,7 @@ interface WorkspaceContextType {
   setCurrentWorkspace: (ws: Workspace | null) => void;
   fetchWorkspaces: () => Promise<void>;
   createWorkspace: (name: string) => Promise<Workspace>;
-  selectWorkspace: (ws: Workspace) => void; // ← add this
+  selectWorkspace: (ws: Workspace) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
@@ -27,21 +27,35 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
 
 export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const { token, user, updateUser } = useAuth();
+
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(
     null
   );
   const [loading, setLoading] = useState<boolean>(true);
 
+  // -----------------------------------------------------
+  // Fetch all workspaces and restore the last selected one
+  // -----------------------------------------------------
   const fetchWorkspaces = async () => {
     if (!token) return;
+
     setLoading(true);
     try {
       const { data } = await api.get<Workspace[]>("/workspaces", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setWorkspaces(data || []);
-      setCurrentWorkspace(data[0] || null);
+
+      const lastWsId = user?.lastWorkspaceId;
+      const found = data.find((w) => w._id === lastWsId);
+
+      if (found) {
+        setCurrentWorkspace(found);
+      } else {
+        setCurrentWorkspace(data[0] || null);
+      }
     } catch (err) {
       console.error(err);
       setWorkspaces([]);
@@ -51,6 +65,9 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // -----------------------------------------------------
+  // Create a workspace & persist selection
+  // -----------------------------------------------------
   const createWorkspace = async (name: string): Promise<Workspace> => {
     if (!token) throw new Error("No auth token");
 
@@ -59,24 +76,36 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       const { data } = await api.post(
         "/workspaces",
         { name },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // If API returns { workspace: {...}, channels: [...] }
       const ws = data.workspace ?? data;
 
       setWorkspaces((prev) => [...prev, ws]);
       setCurrentWorkspace(ws);
+
+      // update last workspace
+      await updateUser({ lastWorkspaceId: ws._id });
+
       return ws;
     } finally {
       setLoading(false);
     }
   };
 
-  const selectWorkspace = (ws: Workspace) => {
+  // -----------------------------------------------------
+  // Select workspace & persist it
+  // -----------------------------------------------------
+  const selectWorkspace = async (ws: Workspace) => {
     setCurrentWorkspace(ws);
+
+    if (!user || !token) return;
+
+    try {
+      await updateUser({ lastWorkspaceId: ws._id });
+    } catch (err) {
+      console.error("Failed to update lastWorkspaceId", err);
+    }
   };
 
   useEffect(() => {

@@ -24,18 +24,23 @@ interface ChannelContextType {
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
 export const ChannelProvider = ({ children }: { children: ReactNode }) => {
-  const { token } = useAuth();
+  const { token, user, updateUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
+
   const [channels, setChannels] = useState<Channel[]>([]);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // -----------------------------
+  // Fetch channels for workspace
+  // -----------------------------
   const fetchChannels = async () => {
     if (!token || !currentWorkspace?._id) {
       setChannels([]);
       setCurrentChannel(null);
       return;
     }
+
     setLoading(true);
     try {
       const { data } = await api.get<Channel[]>(
@@ -44,16 +49,30 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
       setChannels(data || []);
-      setCurrentChannel(data[0] || null);
+
+      // Use last selected channel from user (if exists)
+      const lastId = user?.lastChannelIds?.[currentWorkspace._id];
+      const found = data.find((c) => c._id === lastId);
+      if (found) {
+        setCurrentChannel(found);
+      } else {
+        setCurrentChannel(data[0] || null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // -----------------------------
+  // Create channel
+  // -----------------------------
   const createChannel = async (name: string) => {
-    if (!token || !currentWorkspace?._id)
+    if (!token || !currentWorkspace?._id) {
       throw new Error("Cannot create channel");
+    }
+
     setLoading(true);
     try {
       const { data } = await api.post<Channel>(
@@ -61,18 +80,43 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
         { name, workspaceId: currentWorkspace._id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setChannels((prev) => [...prev, data]);
       setCurrentChannel(data);
+
+      // update lastChannelIds for this workspace
+      await updateUser({ lastChannelIds:  {
+        [currentWorkspace._id]: data._id,
+      } });
+
       return data;
     } finally {
       setLoading(false);
     }
   };
 
-  const selectChannel = (ch: Channel) => {
+  // -----------------------------
+  // Select channel
+  // -----------------------------
+  const selectChannel = async (ch: Channel) => {
     setCurrentChannel(ch);
+
+    if (!token || !currentWorkspace?._id || !user) return;
+
+    try {
+      await updateUser({
+        lastChannelIds: {
+          [currentWorkspace._id]: ch._id,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to update lastChannelIds:", err);
+    }
   };
 
+  // -----------------------------
+  // Refetch when workspace or user loads
+  // -----------------------------
   useEffect(() => {
     fetchChannels();
   }, [currentWorkspace]);
