@@ -144,7 +144,10 @@ export const socketHandler = (io) => {
           // Populate sender info for frontend
           const populatedMessage = await newMessage.populate(
             "sender",
-            "username"
+            {
+              username: 1,
+              displayName: 1
+            }
           );
 
           // Emit to everyone in that room
@@ -155,6 +158,7 @@ export const socketHandler = (io) => {
             sender: {
               _id: populatedMessage.sender._id,
               username: populatedMessage.sender.username,
+              displayName: populatedMessage.sender.displayName,
             },
             timestamp: populatedMessage.createdAt,
           });

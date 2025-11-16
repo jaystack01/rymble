@@ -1,7 +1,7 @@
 import express from "express";
 import Channel from "../models/Channel.js";
 import Workspace from "../models/Workspace.js";
-import { protect } from "../middleware/auth_middleware.js";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 

@@ -5,6 +5,8 @@ import { AuthProvider } from "../context/auth_context";
 import { SocketProvider } from "../context/socket_context";
 import { WorkspaceProvider } from "@/context/workspace_context";
 import { ChannelProvider } from "@/context/channel_context";
+import { Toaster } from "@/components/ui/sonner";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -37,6 +39,7 @@ export default function RootLayout({
             </WorkspaceProvider>
           </SocketProvider>
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
   );

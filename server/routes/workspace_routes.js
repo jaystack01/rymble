@@ -1,6 +1,6 @@
 import express from "express";
 import { createWorkspace, getWorkspaces } from "../controllers/workspace_controller.js";
-import { protect } from "../middleware/auth_middleware.js";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 

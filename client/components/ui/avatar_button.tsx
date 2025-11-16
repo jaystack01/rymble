@@ -24,9 +24,9 @@ export default function AvatarMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="relative group">
-          <Avatar className="h-10 w-10 border border-white/10 group-hover:border-white/20 transition">
+          <Avatar className="h-12 w-12 border border-white/12 group-hover:border-white/20 transition">
             <AvatarImage
-              src={user?.avatar || "/default-avatar.png"}
+              src={user?.avatar || "/default-avatar.jpg"}
               alt={user?.username}
             />
             <AvatarFallback>

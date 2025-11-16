@@ -11,13 +11,15 @@ interface AuthContextType {
   loading: boolean;
 
   login: (email: string, password: string) => Promise<void>;
-  register: (
+  registerUser: (
     username: string,
     email: string,
     password: string
   ) => Promise<void>;
   updateUser: (fields: Partial<User>) => Promise<void>;
   logout: () => void;
+
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -67,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem("token", token);
   };
 
-  const register = async (
+  const registerUser = async (
     username: string,
     email: string,
     password: string
@@ -81,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       saveSession(data.user, data.token);
     } catch (err) {
-      throw getErrorMessage(err);
+      throw err;      
     }
   };
 
@@ -90,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data } = await api.post("/auth/login", { email, password });
       saveSession(data.user, data.token);
     } catch (err) {
-      throw getErrorMessage(err);
+      throw err;
     }
   };
 
@@ -98,14 +100,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!token) return;
 
     try {
-      const { data } = await api.patch("/users/me", fields, {
+      const { data } = await api.patch("/auth/me", fields, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data));
     } catch (err) {
-      throw getErrorMessage(err);
+      throw err;
     }
   };
 
@@ -116,9 +118,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         token,
         loading,
         login,
-        register,
+        registerUser,
         updateUser,
         logout,
+        setUser,
       }}
     >
       {children}

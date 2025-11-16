@@ -11,6 +11,7 @@ export interface Member {
   email: string;
   avatar?: string;
   status?: string;
+  displayName?: string;
 }
 
 export interface Message {

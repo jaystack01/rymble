@@ -52,6 +52,7 @@ export default function ChatWindow() {
     if (!socket) return;
 
     const handler = (msg: Message) => {
+      console.log("Received message:", msg);
       if (msg.roomId === channelId) {
         setMessages((prev) => [...prev, msg]);
       }
@@ -87,7 +88,7 @@ export default function ChatWindow() {
         {messages.map((msg) => (
           <div key={msg._id} className="flex flex-col text-white">
             <span className="text-sm font-medium text-blue-400">
-              {msg.sender?.username || "Unknown"}
+              {msg.sender?.displayName || "Unknown"}
             </span>
             <span className="text-gray-300 break-words">{msg.text}</span>
             <span className="text-xs text-gray-500">
