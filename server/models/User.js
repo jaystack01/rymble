@@ -101,4 +101,4 @@ userSchema.methods.matchPassword = function (entered) {
   return bcrypt.compare(entered, this.password);
 };
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model("users", userSchema);

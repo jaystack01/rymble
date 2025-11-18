@@ -5,31 +5,39 @@ import Channel from "../models/Channel.js";
 export const createWorkspace = async (req, res) => {
   const { name } = req.body;
   const ownerId = req.user._id;
+
   try {
-    const newWorkspace = new Workspace({
+    // 1. Create workspace
+    const workspace = await Workspace.create({
       name,
-      ownerId,
-      members: [ownerId], 
     });
 
-    await newWorkspace.save();
+    // 2. Insert creator as OWNER in WorkspaceMembers
+    await WorkspaceMember.create({
+      workspaceId: workspace._id,
+      userId: ownerId,
+      role: "owner",
+    });
 
-    // Create default channels for the workspace
+    // 3. Create default channels
     const defaultChannels = [
-      { name: "general", workspaceId: newWorkspace._id },
-      { name: "random", workspaceId: newWorkspace._id },
+      { name: "general", workspaceId: workspace._id },
+      { name: "random", workspaceId: workspace._id },
     ];
 
     const channels = await Channel.insertMany(defaultChannels);
 
-    const response = {
-      workspace: newWorkspace.toObject(),
+    // 4. Structured response
+    return res.status(201).json({
+      workspace,
       channels,
-    }; 
+    });
 
-    return res.status(201).json(response);
   } catch (error) {
-    return res.status(500).json({ message: "Error creating workspace", error });
+    console.error("Error creating workspace:", error);
+    return res
+      .status(500)
+      .json({ message: "Error creating workspace", error: error.message });
   }
 };
 

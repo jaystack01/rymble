@@ -25,5 +25,5 @@ channelSchema.pre("save", function (next) {
 });
 
 const Channel =
-  mongoose.models.Channel || mongoose.model("Channel", channelSchema);
+  mongoose.models.Channel || mongoose.model("channels", channelSchema);
 export default Channel;

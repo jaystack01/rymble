@@ -9,23 +9,14 @@ const workspaceSchema = new mongoose.Schema(
       ref: "User",
     },
     avatar: { type: String },
-    members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-// Unique per owner
+// Unique workspace name per owner
 workspaceSchema.index({ name: 1, ownerId: 1 }, { unique: true });
 
-// Defensive index check
-workspaceSchema.pre("save", function (next) {
-  this.model("Workspace")
-    .ensureIndexes()
-    .catch(() => {});
-  next();
-});
-
 const Workspace =
-  mongoose.models.Workspace || mongoose.model("Workspace", workspaceSchema);
+  mongoose.models.Workspace || mongoose.model("workspaces", workspaceSchema);
+
 export default Workspace;
