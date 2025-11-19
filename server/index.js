@@ -10,6 +10,8 @@ import message_routes from "./routes/message_routes.js";
 import channel_routes from "./routes/channel_routes.js";
 import dm_routes from "./routes/dm_routes.js";
 import workspace_routes from "./routes/workspace_routes.js";
+import user_routes from "./routes/user_routes.js";
+import invite_routes from "./routes/invite_routes.js";
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.use("/api/messages", message_routes);
 app.use("/api/channels", channel_routes);
 app.use("/api/dms", dm_routes);
 app.use("/api/workspaces", workspace_routes);
+app.use("/api/users", user_routes);
+app.use("/api/invites", invite_routes);
 
 // Create HTTP server for Socket.io
 const server = http.createServer(app);

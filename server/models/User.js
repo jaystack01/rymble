@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema(
 
     lastWorkspaceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Workspace",
+      ref: "workspaces",
       default: null,
     },
 

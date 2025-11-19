@@ -4,15 +4,15 @@ const workspaceInviteSchema = new mongoose.Schema(
   {
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Workspace",
+      ref: "workspaces",
       required: true,
     },
-    fromUserId: {
+    sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "users",
       required: true,
     },
-    toUserId: {
+    receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "users",
       required: true,

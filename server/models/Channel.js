@@ -6,7 +6,7 @@ const channelSchema = new mongoose.Schema(
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: "Workspace",
+      ref: "workspaces",
     },
     createdAt: { type: Date, default: Date.now },
   },

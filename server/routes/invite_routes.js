@@ -5,8 +5,8 @@ import {
   getSentInvites,
   acceptInvite,
   declineInvite,
-} from "../controllers/invite_controller";
-import { protect } from "../middleware/auth";
+} from "../controllers/invite_controller.js";
+import { protect } from "../middleware/auth.js";
 
 const router = Router();
 

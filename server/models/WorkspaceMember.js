@@ -4,7 +4,7 @@ const workspaceMemberSchema = new mongoose.Schema(
   {
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Workspace",
+      ref: "workspaces",
       required: true,
     },
     userId: {

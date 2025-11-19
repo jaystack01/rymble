@@ -1,7 +1,7 @@
-import Invite from "../models/WorkspaceInvites";
-import Workspace from "../models/Workspace";
-import User from "../models/User";
-import WorkspwaceMember from "../models/WorkspaceMember";
+import Invite from "../models/WorkspaceInvites.js";
+import Workspace from "../models/Workspace.js";
+import User from "../models/User.js";
+import WorkspaceMember from "../models/WorkspaceMember.js";
 
 // SEND INVITE
 export const sendInvite = async (req, res) => {
