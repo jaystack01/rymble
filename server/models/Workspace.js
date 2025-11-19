@@ -3,11 +3,6 @@ import mongoose from "mongoose";
 const workspaceSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    ownerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "User",
-    },
     avatar: { type: String },
   },
   { timestamps: true }

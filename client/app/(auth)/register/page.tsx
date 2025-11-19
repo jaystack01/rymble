@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import Link from "next/link";
 
 import { parseFieldError } from "@/utils/error";
 import { useAuth } from "@/context/auth_context";
@@ -138,9 +139,9 @@ export default function RegisterPage() {
 
           <p className="text-sm text-gray-400 text-center mt-2">
             Already have an account?{" "}
-            <a href="/login" className="text-purple-400 underline">
+            <Link href="/login" className="text-purple-400 underline">
               Sign in
-            </a>
+            </Link>
           </p>
         </form>
       </div>

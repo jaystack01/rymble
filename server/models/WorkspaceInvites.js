@@ -9,12 +9,12 @@ const workspaceInviteSchema = new mongoose.Schema(
     },
     fromUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "users",
       required: true,
     },
     toUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "users",
       required: true,
     },
     status: {

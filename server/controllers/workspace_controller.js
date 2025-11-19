@@ -1,5 +1,6 @@
 import Workspace from "../models/Workspace.js";
 import Channel from "../models/Channel.js";
+import WorkspaceMember from "../models/WorkspaceMember.js";
 
 // Create a new workspace
 export const createWorkspace = async (req, res) => {
