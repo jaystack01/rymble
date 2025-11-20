@@ -83,6 +83,7 @@ export const getWorkspaces = async (req, res) => {
         email: m.userId?.email,
         status: m.userId?.status,
         role: m.role,
+        displayName: m.displayName,
       });
     }
 
@@ -120,3 +121,27 @@ export const getWorkspaces = async (req, res) => {
   }
 };
 
+export const getWorkspaceMembers = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const members = await WorkspaceMember.find({ workspaceId: id }).populate(
+      "userId",
+      "username email avatar status displayName"
+    );
+    console.log("Fetched members:", members);
+    return res.json({
+      members: members.map((m) => ({
+        _id: m.userId._id,
+        username: m.userId.username,
+        email: m.userId.email,
+        status: m.userId.status,
+        avatar: m.userId.avatar,
+        displayName: m.userId.displayName,
+      })),
+    });
+  } catch (error) {
+    console.error("Failed to fetch workspace members:", error);
+    res.status(500).json({ message: "Error fetching members" });
+  }
+};

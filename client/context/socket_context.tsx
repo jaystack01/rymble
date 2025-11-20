@@ -2,40 +2,50 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
-  useState,
   useRef,
-  useCallback,
+  useState,
 } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./auth_context";
 
+interface SendMessagePayload {
+  roomId: string;
+  text: string;
+  type: "dm" | "channel";
+  recipientId?: string;
+}
+
+interface RoomPresence {
+  onlineCount: number;
+}
+
 interface SocketContextType {
   socket: Socket | null;
   onlineUsers: string[];
-  roomPresence: Record<string, { onlineCount: number }>;
-  sendMessage: (
-    roomId: string,
-    text: string,
-    isDm?: boolean,
-    recipientId?: string
-  ) => void;
+  roomPresence: Record<string, RoomPresence>;
+
+  sendMessage: (payload: SendMessagePayload) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: (roomId: string) => void;
 }
 
-const SocketContext = createContext<SocketContextType | undefined>(undefined);
+const SocketContext = createContext<SocketContextType | null>(null);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const { token } = useAuth();
+
+  const socketRef = useRef<Socket | null>(null);
+
   const [socket, setSocket] = useState<Socket | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [roomPresence, setRoomPresence] = useState<
-    Record<string, { onlineCount: number }>
+    Record<string, RoomPresence>
   >({});
-  const socketRef = useRef<Socket | null>(null);
 
+  // Initialize socket
   useEffect(() => {
     if (!token) return;
 
@@ -43,22 +53,31 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       auth: { token },
       transports: ["websocket"],
     });
+
     socketRef.current = s;
     Promise.resolve().then(() => setSocket(s));
 
-    // Presence events
-    s.on("presence:init", ({ online }) => setOnlineUsers(online || []));
-    s.on("user:online", ({ userId }) =>
+    // presence
+    s.on("presence:init", ({ online }) => {
+      setOnlineUsers(online || []);
+    });
+
+    s.on("user:online", ({ userId }) => {
       setOnlineUsers((prev) =>
         prev.includes(userId) ? prev : [...prev, userId]
-      )
-    );
-    s.on("user:offline", ({ userId }) =>
-      setOnlineUsers((prev) => prev.filter((id) => id !== userId))
-    );
-    s.on("room:presence", ({ roomId, onlineCount }) =>
-      setRoomPresence((prev) => ({ ...prev, [roomId]: { onlineCount } }))
-    );
+      );
+    });
+
+    s.on("user:offline", ({ userId }) => {
+      setOnlineUsers((prev) => prev.filter((id) => id !== userId));
+    });
+
+    s.on("room:presence", ({ roomId, onlineCount }) => {
+      setRoomPresence((prev) => ({
+        ...prev,
+        [roomId]: { onlineCount },
+      }));
+    });
 
     return () => {
       s.disconnect();
@@ -69,17 +88,17 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [token]);
 
-  const sendMessage = useCallback(
-    (roomId: string, text: string, isDm = false, recipientId?: string) => {
-      socketRef.current?.emit("send_message", {
-        roomId,
-        message: text,
-        isDm,
-        recipientId,
-      });
-    },
-    []
-  );
+  // send message
+  const sendMessage = useCallback((payload: SendMessagePayload) => {
+    const { roomId, text, type, recipientId } = payload;
+
+    socketRef.current?.emit("send_message", {
+      roomId,
+      message: text,
+      isDm: type === "dm",
+      recipientId,
+    });
+  }, []);
 
   const joinRoom = useCallback((roomId: string) => {
     socketRef.current?.emit("join_room", roomId);
@@ -105,15 +124,21 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useSocket = () => useContext(SocketContext)?.socket || null;
+// Hooks
+export const useSocket = () => {
+  const ctx = useContext(SocketContext);
+  return ctx?.socket ?? null;
+};
 
-export const useSocketActions = (): Pick<
-  SocketContextType,
-  "sendMessage" | "joinRoom" | "leaveRoom"
-> => {
+export const useSocketActions = () => {
   const ctx = useContext(SocketContext);
   if (!ctx)
-    return { sendMessage: () => {}, joinRoom: () => {}, leaveRoom: () => {} };
+    return {
+      sendMessage: () => {},
+      joinRoom: () => {},
+      leaveRoom: () => {},
+    };
+
   return {
     sendMessage: ctx.sendMessage,
     joinRoom: ctx.joinRoom,
@@ -121,11 +146,10 @@ export const useSocketActions = (): Pick<
   };
 };
 
-export const usePresence = (): Pick<
-  SocketContextType,
-  "onlineUsers" | "roomPresence"
-> => {
+export const usePresence = () => {
   const ctx = useContext(SocketContext);
-  if (!ctx) return { onlineUsers: [], roomPresence: {} };
-  return { onlineUsers: ctx.onlineUsers, roomPresence: ctx.roomPresence };
+  return {
+    onlineUsers: ctx?.onlineUsers ?? [],
+    roomPresence: ctx?.roomPresence ?? {},
+  };
 };

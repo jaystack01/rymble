@@ -5,6 +5,7 @@ import { AuthProvider } from "../context/auth_context";
 import { SocketProvider } from "../context/socket_context";
 import { WorkspaceProvider } from "@/context/workspace_context";
 import { ChannelProvider } from "@/context/channel_context";
+import { MembersProvider } from "@/context/members_context";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -35,7 +36,9 @@ export default function RootLayout({
         <AuthProvider>
           <SocketProvider>
             <WorkspaceProvider>
-              <ChannelProvider>{children}</ChannelProvider>
+              <ChannelProvider>
+                <MembersProvider>{children}</MembersProvider>
+              </ChannelProvider>
             </WorkspaceProvider>
           </SocketProvider>
         </AuthProvider>
