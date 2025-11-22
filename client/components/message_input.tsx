@@ -17,7 +17,6 @@ export default function MessageInput() {
 
   const isDM = !!selectedMember;
 
-  // room id: always deterministic for DM
   const roomId = isDM
     ? [user?._id, selectedMember?._id].sort().join("_")
     : currentChannel?._id;
@@ -26,27 +25,31 @@ export default function MessageInput() {
     ? `Message @${selectedMember?.displayName || selectedMember?.username}`
     : `Message #${currentChannel?.name}`;
 
-  const handleSend = (e?: FormEvent) => {
+  const handleSend = async (e?: FormEvent) => {
     e?.preventDefault();
-
-    if (!text.trim() || !roomId || !user) return;
+    if (!text.trim() || !roomId || !user || isSending) return;
 
     setIsSending(true);
 
-    sendMessage({
-      roomId,
-      text: text.trim(),
-      type: isDM ? "dm" : "channel",
-      recipientId: isDM ? selectedMember?._id : undefined,
-    });
+    try {
+      await sendMessage({
+        roomId,
+        text: text.trim(),
+        type: isDM ? "dm" : "channel",
+        recipientId: isDM ? selectedMember?._id : undefined,
+      });
 
-    setText("");
-    setIsSending(false);
+      setText("");
+    } catch (err) {
+      console.error("Send message error:", err);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   if (!roomId) {
     return (
-      <div className="p-4 border-t border-gray-800 text-gray-500 text-center">
+      <div className="p-4 border-t border-zinc-800 text-zinc-600 bg-zinc-950 text-center">
         Select a channel or member to start messaging.
       </div>
     );
@@ -55,21 +58,21 @@ export default function MessageInput() {
   return (
     <form
       onSubmit={handleSend}
-      className="p-4 border-t border-gray-800 bg-gray-900 flex items-center space-x-2"
+      className="p-4 border-t border-zinc-800 bg-zinc-950 flex items-center space-x-3"
     >
       <input
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-gray-800 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex-1 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
         disabled={isSending}
       />
 
       <button
         type="submit"
         disabled={!text.trim() || isSending}
-        className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-all"
       >
         Send
       </button>

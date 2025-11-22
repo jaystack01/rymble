@@ -16,26 +16,25 @@ export default function ChatPage() {
 
   if (!isReady) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+      <div className="flex h-full items-center justify-center bg-zinc-950 text-zinc-500 text-sm">
         {workspaces.length
-          ? "Loading workspace..."
-          : "Create your first workspace!"}
+          ? "Loading your workspace..."
+          : "No workspaces yet. Create your first one!"}
       </div>
     );
   }
 
   return (
-    <div className="flex h-full">
-      {/* Channel list on the left */}
+    <div className="flex h-full bg-zinc-950">
+      {/* Left sidebar */}
       <ChannelSidebar />
 
-      {/* Chat window on the right */}
-      <div className="flex flex-col flex-1 h-full overflow-hidden">
+      {/* Right content */}
+      <div className="flex flex-col flex-1 h-full overflow-hidden border-l border-zinc-800">
         <ChatWindow />
 
-        <div className="border-t border-gray-800 p-4 bg-gray-900">
-          <MessageInput />
-        </div>
+        {/* Message input */}
+        <MessageInput />
       </div>
     </div>
   );

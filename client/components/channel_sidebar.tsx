@@ -1,13 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  RefObject,
+} from "react";
 import { useWorkspace } from "@/context/workspace_context";
 import { useChannel } from "@/context/channel_context";
 import { useMembers } from "@/context/members_context";
 import { usePresence } from "@/context/socket_context";
 import { useAuth } from "@/context/auth_context";
-import { Plus } from "lucide-react";
-import { Channel, Member } from "@/types/shared";
+
+import { Plus, Users, Hash, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Channel, Member} from '@/types/shared'
 
 export default function ChannelSidebar() {
   const { currentWorkspace } = useWorkspace();
@@ -20,41 +31,31 @@ export default function ChannelSidebar() {
 
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // optional refs to scroll active into view
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const activeChannelRef = useRef<HTMLDivElement | null>(null);
   const activeMemberRef = useRef<HTMLDivElement | null>(null);
 
-  // Autofocus for new channel input
   useEffect(() => {
     if (isCreating && inputRef.current) inputRef.current.focus();
   }, [isCreating]);
 
-  // ---------------------------
-  // Compute view mode (DM wins)
-  // ---------------------------
-  const viewMode = useMemo<"channel" | "dm" | null>(() => {
+  const viewMode = useMemo<"dm" | "channel" | null>(() => {
     if (selectedMember) return "dm";
     if (currentChannel) return "channel";
     return null;
   }, [selectedMember, currentChannel]);
 
-  // Scroll active into view when mode or selected item changes (small UX nicety)
   useEffect(() => {
-    if (viewMode === "channel" && activeChannelRef.current) {
-      activeChannelRef.current.scrollIntoView({ block: "nearest" });
-    } else if (viewMode === "dm" && activeMemberRef.current) {
-      activeMemberRef.current.scrollIntoView({ block: "nearest" });
+    if (viewMode === "channel") {
+      activeChannelRef.current?.scrollIntoView({ block: "nearest" });
+    } else if (viewMode === "dm") {
+      activeMemberRef.current?.scrollIntoView({ block: "nearest" });
     }
   }, [viewMode, currentChannel?._id, selectedMember?._id]);
 
-  // ---------------------------
-  // Handlers (stable with useCallback)
-  // ---------------------------
   const handleSelectChannel = useCallback(
-    async (ch: Channel) => {
-      // Clear DM first, then set channel — await so ordering is predictable
+    async (ch: Channel | null) => {
       await selectMember(null);
       await selectChannel(ch);
     },
@@ -62,8 +63,7 @@ export default function ChannelSidebar() {
   );
 
   const handleSelectMember = useCallback(
-    async (m: Member) => {
-      // Clear channel first, then set member
+    async (m: Member | null) => {
       await selectChannel(null);
       await selectMember(m);
     },
@@ -72,11 +72,10 @@ export default function ChannelSidebar() {
 
   const handleCreate = useCallback(async () => {
     if (!newChannelName.trim() || !currentWorkspace) return;
-
     setIsCreating(true);
+
     try {
       const ch = await createChannel(newChannelName.trim());
-      // ensure sidebar selection follows the created channel
       await handleSelectChannel(ch);
       setNewChannelName("");
     } catch (err) {
@@ -88,101 +87,182 @@ export default function ChannelSidebar() {
 
   if (!currentWorkspace) {
     return (
-      <aside className="w-64 bg-gray-900 text-gray-400 flex items-center justify-center">
+      <aside className="w-64 bg-zinc-900 text-zinc-400 flex items-center justify-center">
         Select a workspace
       </aside>
     );
   }
 
   return (
-    <aside className="w-64 bg-gray-900 text-white h-screen flex flex-col border-l border-gray-800">
-      {/* Workspace Name */}
-      <div className="p-4 font-semibold text-lg border-b border-gray-800">
-        {currentWorkspace.name}
+    <aside className="w-64 h-screen bg-zinc-950 border-l border-zinc-800 flex flex-col">
+      {/* Workspace Header */}
+      <div className="px-4 py-4 border-b border-zinc-800">
+        <h1 className="text-lg font-semibold text-white truncate">
+          {currentWorkspace.name}
+        </h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {/* Channels */}
-        <div className="px-4 py-2 text-xs uppercase text-gray-400">
-          Channels
-        </div>
+        <SectionHeader
+          icon={<Hash size={14} />}
+          title="Channels"
+          action={
+            <button
+              onClick={() => setIsCreating(true)}
+              className="p-1 hover:bg-zinc-800 rounded text-zinc-400"
+            >
+              <Plus size={14} />
+            </button>
+          }
+        />
 
-        {channels.length === 0 ? (
-          <div className="px-4 py-3 text-gray-500 text-sm">No channels yet</div>
-        ) : (
-          channels.map((ch) => {
-            const isActive =
-              viewMode === "channel" && currentChannel?._id === ch._id;
+        <div className="px-2 flex flex-col gap-1">
+          {channels.length === 0 ? (
+            <EmptyItem label="No channels yet" />
+          ) : (
+            channels.map((ch) => {
+              const active =
+                viewMode === "channel" && currentChannel?._id === ch._id;
+              return (
+                <SidebarItem
+                  key={ch._id}
+                  label={ch.name}
+                  icon={<Hash size={14} />}
+                  active={active}
+                  innerRef={active ? activeChannelRef : undefined}
+                  onClick={() => handleSelectChannel(ch)}
+                />
+              );
+            })
+          )}
 
-            return (
-              <div
-                key={ch._id}
-                ref={isActive ? activeChannelRef : undefined}
-                onClick={() => handleSelectChannel(ch)}
-                className={`px-4 py-2 cursor-pointer hover:bg-gray-800 rounded ${
-                  isActive ? "bg-gray-800 font-medium" : ""
-                }`}
+          {/* Inline create channel */}
+          {isCreating && (
+            <div className="flex items-center gap-2 px-2 py-2">
+              <Input
+                ref={inputRef}
+                placeholder="new-channel"
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+                className="bg-zinc-900"
+              />
+              <Button
+                size="sm"
+                onClick={handleCreate}
+                disabled={!newChannelName.trim()}
               >
-                # {ch.name}
-              </div>
-            );
-          })
-        )}
+                Create
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewChannelName("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Members */}
-        <div className="px-4 py-2 mt-4 text-xs uppercase text-gray-400">
-          Members
-        </div>
+        <SectionHeader icon={<Users size={14} />} title="Members" />
 
-        {members.length === 0 ? (
-          <div className="px-4 py-3 text-gray-500 text-sm">No members</div>
-        ) : (
-          members.map((m) => {
-            const active = viewMode === "dm" && selectedMember?._id === m._id;
+        <div className="px-2 flex flex-col gap-1 mb-4">
+          {members.length === 0 ? (
+            <EmptyItem label="No members" />
+          ) : (
+            members.map((m) => {
+              const active = viewMode === "dm" && selectedMember?._id === m._id;
 
-            return (
-              <div
-                key={m._id}
-                ref={active ? activeMemberRef : undefined}
-                onClick={() => handleSelectMember(m)}
-                className={`px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-800 rounded ${
-                  active ? "bg-gray-800 font-medium" : ""
-                }`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    onlineUsers.includes(m._id) ? "bg-green-500" : "bg-gray-600"
-                  }`}
+              const online = onlineUsers.includes(m._id);
+
+              return (
+                <SidebarItem
+                  key={m._id}
+                  label={m.displayName || m.username}
+                  icon={<MessageSquare size={14} />}
+                  active={active}
+                  online={online}
+                  suffix={m._id === user?._id ? "You" : undefined}
+                  innerRef={active ? activeMemberRef : undefined}
+                  onClick={() => handleSelectMember(m)}
                 />
-                <span>
-                  {m.displayName || m.username}
-                  {m._id === user?._id && " (You)"}
-                </span>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Create Channel */}
-      <div className="p-4 border-t border-gray-800 flex flex-col gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="New channel name"
-          value={newChannelName}
-          onChange={(e) => setNewChannelName(e.target.value)}
-          disabled={isCreating}
-          className="w-full p-2 rounded bg-gray-800 text-sm text-white placeholder-gray-400 outline-none"
-        />
-        <button
-          onClick={handleCreate}
-          disabled={isCreating || !newChannelName.trim()}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 py-2 rounded text-sm font-medium disabled:opacity-50"
-        >
-          <Plus size={16} /> Create Channel
-        </button>
-      </div>
+              );
+            })
+          )}
+        </div>
+      </ScrollArea>
     </aside>
+  );
+}
+
+/* ---------- COMPONENTS ---------- */
+
+function SectionHeader({
+  icon,
+  title,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="px-4 py-3 text-xs uppercase text-zinc-500 flex items-center justify-between tracking-wider">
+      <div className="flex items-center gap-2">
+        {icon}
+        {title}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function SidebarItem({
+  label,
+  icon,
+  active,
+  online,
+  suffix,
+  onClick,
+  innerRef,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  online?: boolean;
+  suffix?: string;
+  innerRef?: RefObject<HTMLDivElement | null>;
+  onClick?: () => void;
+}) {
+  return (
+    <div
+      ref={innerRef}
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-all ${
+        active ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/50"
+      }`}
+    >
+      {online !== undefined && (
+        <span
+          className={`w-2 h-2 rounded-full ${
+            online ? "bg-green-500" : "bg-zinc-600"
+          }`}
+        />
+      )}
+      {icon}
+      <span className="flex-1 truncate">{label}</span>
+      {suffix && <span className="text-xs text-zinc-500">({suffix})</span>}
+    </div>
+  );
+}
+
+function EmptyItem({ label }: { label: string }) {
+  return (
+    <div className="px-3 py-2 text-sm text-zinc-500 select-none">{label}</div>
   );
 }
