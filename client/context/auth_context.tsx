@@ -20,6 +20,12 @@ interface AuthContextType {
   logout: () => void;
 
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+
+  updateContext: (
+    workspaceId: string,
+    contextType: "channel" | "member",
+    contextId: string,
+  ) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -111,6 +117,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateContext = async (
+    workspaceId: string,
+    contextType: "channel" | "member",
+    contextId: string
+  ) => {
+    if (!token || !user) return;
+
+    // Optimistic client update
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        lastOpened: {
+          ...prev.lastOpened,
+          [workspaceId]: { type: contextType, id: contextId },
+        },
+      };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+
+    // Sync with DB
+    await api.patch(
+      "/users/context",
+      { workspaceId, contextType, contextId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  };
+
+
   return (
     <AuthContext.Provider
       value={{
@@ -122,6 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updateUser,
         logout,
         setUser,
+        updateContext,
       }}
     >
       {children}

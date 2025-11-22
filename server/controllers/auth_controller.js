@@ -12,7 +12,7 @@ const formatUser = (user) => ({
   email: user.email,
   avatar: user.avatar || null,
   lastWorkspaceId: user.lastWorkspaceId || null,
-  lastChannelIds: user.lastChannelIds || {},
+  lastOpened: user.lastOpened || null,
 });
 
 const sendUserResponse = (user, res) => {

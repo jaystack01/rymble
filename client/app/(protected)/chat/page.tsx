@@ -5,12 +5,14 @@ import ChatWindow from "@/components/chat_window";
 import MessageInput from "@/components/message_input";
 import { useWorkspace } from "@/context/workspace_context";
 import { useChannel } from "@/context/channel_context";
+import { useMembers } from "@/context/members_context";
 
 export default function ChatPage() {
   const { currentWorkspace, workspaces } = useWorkspace();
   const { currentChannel } = useChannel();
+  const { selectedMember } = useMembers();
 
-  const isReady = currentWorkspace && currentChannel;
+  const isReady = currentWorkspace && (currentChannel || selectedMember);
 
   if (!isReady) {
     return (

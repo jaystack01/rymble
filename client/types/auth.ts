@@ -1,14 +1,21 @@
 export interface User {
   _id: string;
-  username: string; // Unique identifier (login identity)
-  displayName: string; // Visible name in chat (editable)
+  username: string;
+  displayName: string;
   email: string;
 
-  avatar?: string | null; // Default or user-selected avatar
+  avatar?: string | null;
   createdAt: string;
 
-  lastWorkspaceId?: string;
-  lastChannelIds?: { [workspaceId: string]: string };
+  lastWorkspaceId?: string | null;
+
+  lastOpened?: Record<
+    string, // workspaceId
+    {
+      type: "channel" | "member";
+      id: string;
+    }
+  >;
 }
 
 export interface AuthContextType {

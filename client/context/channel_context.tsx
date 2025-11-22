@@ -18,22 +18,22 @@ interface ChannelContextType {
   loading: boolean;
   fetchChannels: () => Promise<void>;
   createChannel: (name: string) => Promise<Channel>;
-  selectChannel: (ch: Channel) => void;
+  selectChannel: (ch: Channel | null) => Promise<void>;
 }
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
 export const ChannelProvider = ({ children }: { children: ReactNode }) => {
-  const { token, user, updateUser } = useAuth();
+  const { token, user, updateContext } = useAuth();
   const { currentWorkspace } = useWorkspace();
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // -----------------------------
-  // Fetch channels for workspace
-  // -----------------------------
+  // --------------------------------------
+  // Fetch channels for the current workspace
+  // --------------------------------------
   const fetchChannels = async () => {
     if (!token || !currentWorkspace?._id) {
       setChannels([]);
@@ -45,29 +45,31 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data } = await api.get<Channel[]>(
         `/channels/${currentWorkspace._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setChannels(data || []);
 
-      // Use last selected channel from user (if exists)
-      const lastId = user?.lastChannelIds?.[currentWorkspace._id];
-      const found = data.find((c) => c._id === lastId);
-      if (found) {
-        setCurrentChannel(found);
-      } else {
-        setCurrentChannel(data[0] || null);
+      // Restore last opened context
+      const last = user?.lastOpened?.[currentWorkspace._id];
+      if (last?.type === "channel" && last.id) {
+        const found = data.find((c) => c._id === last.id);
+        if (found) {
+          setCurrentChannel(found);
+          return;
+        }
       }
+
+      // Default fallback
+      setCurrentChannel(data[0] || null);
     } finally {
       setLoading(false);
     }
   };
 
-  // -----------------------------
-  // Create channel
-  // -----------------------------
+  // --------------------------------------
+  // Create a new channel
+  // --------------------------------------
   const createChannel = async (name: string) => {
     if (!token || !currentWorkspace?._id) {
       throw new Error("Cannot create channel");
@@ -84,10 +86,8 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
       setChannels((prev) => [...prev, data]);
       setCurrentChannel(data);
 
-      // update lastChannelIds for this workspace
-      await updateUser({ lastChannelIds:  {
-        [currentWorkspace._id]: data._id,
-      } });
+      // use updateContext()
+      await updateContext(currentWorkspace._id, "channel", data._id);
 
       return data;
     } finally {
@@ -95,28 +95,22 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // -----------------------------
-  // Select channel
-  // -----------------------------
-  const selectChannel = async (ch: Channel) => {
+  // --------------------------------------
+  // Select channel (or clear it)
+  // --------------------------------------
+  const selectChannel = async (ch: Channel | null) => {
     setCurrentChannel(ch);
 
-    if (!token || !currentWorkspace?._id || !user) return;
+    if (!currentWorkspace?._id) return;
+    if (!ch || !ch._id) return;
 
-    try {
-      await updateUser({
-        lastChannelIds: {
-          [currentWorkspace._id]: ch._id,
-        },
-      });
-    } catch (err) {
-      console.error("Failed to update lastChannelIds:", err);
-    }
+    // use updateContext()
+    await updateContext(currentWorkspace._id, "channel", ch._id);
   };
 
-  // -----------------------------
-  // Refetch when workspace or user loads
-  // -----------------------------
+  // --------------------------------------
+  // Refetch when workspace changes
+  // --------------------------------------
   useEffect(() => {
     fetchChannels();
   }, [currentWorkspace]);

@@ -46,19 +46,23 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    lastChannelIds: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-      validate: {
-        validator: function (obj) {
-          // allow empty object
-          if (!obj || typeof obj !== "object") return false;
-          return Object.values(obj).every((v) =>
-            v ? mongoose.isValidObjectId(v) : true
-          );
+    lastOpened: {
+      type: Map,
+      of: new mongoose.Schema(
+        {
+          type: {
+            type: String,
+            enum: ["channel", "member"],
+            required: true,
+          },
+          id: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+          },
         },
-        message: "All lastChannelIds values must be valid ObjectIds",
-      },
+        { _id: false }
+      ),
+      default: {},
     },
 
     avatar: {

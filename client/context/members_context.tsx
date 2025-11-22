@@ -2,22 +2,15 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useWorkspace } from "./workspace_context";
+import { useAuth } from "./auth_context";
 import api from "@/lib/api";
-
-interface Member {
-  _id: string;
-  username: string;
-  email?: string;
-  status?: string;
-  avatar?: string;
-  displayName?: string;
-}
+import { Member } from "@/types/shared";
 
 interface MembersContextType {
   members: Member[];
   loading: boolean;
   selectedMember: Member | null;
-  selectMember: (m: Member) => void;
+  selectMember: (m: Member | null) => Promise<void>;
   refreshMembers: () => Promise<void>;
 }
 
@@ -29,21 +22,31 @@ export const MembersProvider = ({
   children: React.ReactNode;
 }) => {
   const { currentWorkspace } = useWorkspace();
+  const { user, updateContext } = useAuth();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
-  // Fetch members of active workspace
+  // ------------------------------
+  // Fetch all members of workspace
+  // ------------------------------
   const refreshMembers = async () => {
     if (!currentWorkspace?._id) return;
 
     setLoading(true);
     try {
-      const res = await api.get(
-        `/workspaces/${currentWorkspace._id}/members`
-      );
+      const res = await api.get(`/workspaces/${currentWorkspace._id}/members`);
       setMembers(res.data.members);
+
+      // Restore last opened context
+      const last = user?.lastOpened?.[currentWorkspace._id];
+      if (last?.type === "member" && last.id) {
+        const found = res.data.members.find((m: Member) => m._id === last.id);
+        setSelectedMember(found || null);
+      } else {
+        setSelectedMember(null);
+      }
     } catch (err) {
       console.error("Failed to load members:", err);
     } finally {
@@ -51,14 +54,21 @@ export const MembersProvider = ({
     }
   };
 
-  // Auto-fetch when workspace changes
+  // Auto-refresh on workspace switch
   useEffect(() => {
     refreshMembers();
-    setSelectedMember(null);
   }, [currentWorkspace?._id]);
 
-  const selectMember = (m: Member) => {
+  // ------------------------------
+  // Select a member
+  // ------------------------------
+  const selectMember = async (m: Member | null) => {
     setSelectedMember(m);
+
+    if (!currentWorkspace?._id) return;
+    if (!m || !m._id) return;
+
+    await updateContext(currentWorkspace._id, "member", m._id);
   };
 
   return (
