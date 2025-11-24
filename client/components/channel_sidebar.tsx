@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Channel, Member} from '@/types/shared'
+import InviteMembersModal from "@/components/modals/invite_members_modal";
 
 export default function ChannelSidebar() {
   const { currentWorkspace } = useWorkspace();
@@ -31,6 +32,7 @@ export default function ChannelSidebar() {
 
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+    const [inviteOpen, setInviteOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const activeChannelRef = useRef<HTMLDivElement | null>(null);
@@ -169,7 +171,18 @@ export default function ChannelSidebar() {
         </div>
 
         {/* Members */}
-        <SectionHeader icon={<Users size={14} />} title="Members" />
+        <SectionHeader
+          icon={<Users size={14} />}
+          title="Members"
+          action={
+            <button
+              onClick={() => setInviteOpen(true)}
+              className="p-1 hover:bg-zinc-800 rounded text-zinc-400"
+            >
+              <Plus size={14} />
+            </button>
+          }
+        />
 
         <div className="px-2 flex flex-col gap-1 mb-4">
           {members.length === 0 ? (
@@ -196,6 +209,12 @@ export default function ChannelSidebar() {
           )}
         </div>
       </ScrollArea>
+
+      <InviteMembersModal
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        workspaceId={currentWorkspace._id}
+      />
     </aside>
   );
 }

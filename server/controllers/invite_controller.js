@@ -71,6 +71,7 @@ export const getReceivedInvites = async (req, res) => {
   try {
     const invites = await Invite.find({
       receiver: req.user._id,
+      status: "pending"
     })
       .populate("sender", "username avatar")
       .populate("workspaceId", "name icon");
@@ -125,7 +126,12 @@ export const acceptInvite = async (req, res) => {
       role: "member",
     });
 
-    return res.json({ message: "Invite accepted and joined workspace" });
+    const workspace = Workspace.findById(invite.workspaceId);
+
+    return res.json(
+      { message: "Invite accepted and joined workspace" },
+      workspace
+    );
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });

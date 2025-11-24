@@ -1,62 +1,88 @@
 "use client";
 
-import { useState } from "react";
-import { useWorkspace } from "@/context/workspace_context";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
-interface CreateWorkspaceModalProps {
+import { useWorkspace } from "@/context/workspace_context";
+
+interface Props {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (v: boolean) => void;
 }
 
-export default function CreateWorkspaceModal({
-  open,
-  onOpenChange,
-}: CreateWorkspaceModalProps) {
-  const { createWorkspace } = useWorkspace();
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function CreateWorkspaceModal({ open, onOpenChange }: Props) {
+  const { createWorkspace, selectWorkspace } = useWorkspace();
 
-  const handleCreate = async () => {
-    if (!name.trim()) return;
+  const [name, setName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto focus
+  useEffect(() => {
+    if (open) {
+      const id = setTimeout(() => inputRef.current?.focus(), 20);
+      return () => clearTimeout(id);
+    }
+  }, [open]);
+
+  const handleCreate = useCallback(async () => {
+    if (!name.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+
     try {
-      setLoading(true);
-      await createWorkspace(name);
+      const ws = await createWorkspace(name.trim());
+      if (ws) selectWorkspace(ws);
+
       setName("");
       onOpenChange(false);
     } catch (err) {
-      console.error("Error creating workspace:", err);
+      console.error("Failed to create workspace:", err);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
-  };
+  }, [name, isSubmitting, createWorkspace, selectWorkspace, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
         <DialogHeader>
-          <DialogTitle>Create a new workspace</DialogTitle>
+          <DialogTitle>Create Workspace</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="workspaceName">Workspace name</Label>
-            <Input
-              id="workspaceName"
-              placeholder="Enter workspace name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <Button onClick={handleCreate} disabled={loading}>
-            {loading ? "Creating..." : "Create"}
+
+        <Input
+          ref={inputRef}
+          placeholder="Workspace name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={isSubmitting}
+          className="bg-zinc-950 border-zinc-800 text-white"
+        />
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button
+            variant="ghost"
+            className="text-zinc-400 hover:text-zinc-200"
+            onClick={() => {
+              onOpenChange(false);
+              setName("");
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={handleCreate}
+            disabled={!name.trim() || isSubmitting}
+          >
+            {isSubmitting ? "Creating..." : "Create"}
           </Button>
         </div>
       </DialogContent>

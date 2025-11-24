@@ -1,66 +1,45 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
-import { useWorkspace } from "@/context/workspace_context";
-import { useAuth } from "@/context/auth_context";
-import AvatarMenu from "@/components/ui/avatar_button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
+import { useWorkspace } from "@/context/workspace_context";
+import { useAuth } from "@/context/auth_context";
+import AvatarMenu from "@/components/ui/avatar_button";
+import api from "@/lib/api";
+
+import InvitesModal from "@/components/modals/invites_modal";
+import CreateWorkspaceModal from "@/components/modals/create_workspace_modal";
+
 export default function WorkspaceSidebar() {
   const { user } = useAuth();
-  const {
-    workspaces = [],
-    currentWorkspace,
-    selectWorkspace,
-    createWorkspace,
-    loading = false,
-  } = useWorkspace();
+  const { workspaces, currentWorkspace, selectWorkspace } = useWorkspace();
 
   const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
+  // load user invites count
   useEffect(() => {
-    if (creating) {
-      const id = setTimeout(() => inputRef.current?.focus(), 10);
-      return () => clearTimeout(id);
+    async function loadInvites() {
+      try {
+        const res = await api.get("/invites/received");
+        setPendingCount(res.data.length || 0);
+      } catch {
+        setPendingCount(0);
+      }
     }
-  }, [creating]);
-
-  const handleCreate = useCallback(async () => {
-    if (!name.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-
-    try {
-      const ws = await createWorkspace(name.trim());
-      if (ws) selectWorkspace(ws);
-      setName("");
-      setCreating(false);
-    } catch (err) {
-      console.error("Failed to create workspace:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [name, isSubmitting, createWorkspace, selectWorkspace]);
+    loadInvites();
+  }, []);
 
   return (
     <>
       <aside className="w-20 h-screen bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between items-center py-4">
-        {/* Workspaces List */}
         <ScrollArea className="flex-1 w-full">
           <div className="flex flex-col items-center gap-3 mt-2 pb-10">
-            {workspaces.map((ws) => {
+            {workspaces?.map((ws) => {
               const active = currentWorkspace?._id === ws._id;
 
               return (
@@ -91,49 +70,79 @@ export default function WorkspaceSidebar() {
           </div>
         </ScrollArea>
 
-        {/* Bottom user avatar */}
+        {/* Workspace Invites Button */}
+        <button
+          onClick={() => setInvitesOpen(true)}
+          className="
+            relative
+            w-11 h-11
+            rounded-xl
+            bg-zinc-900
+            hover:bg-zinc-800
+            flex items-center justify-center
+            transition-all
+            text-zinc-300
+            shadow-sm
+            hover:shadow-md
+            mb-5
+          "
+          title="Workspace Invitations"
+        >
+          <div className="relative">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-5 h-5 text-zinc-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M3 7l9-4 9 4-9 4-9-4z" />
+              <path d="M3 7v10l9 4 9-4V7" />
+            </svg>
+
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 text-indigo-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M12 5v14m7-7H5" />
+            </svg>
+          </div>
+
+          {pendingCount > 0 && (
+            <span
+              className="
+                absolute
+                -top-1 -right-1
+                bg-red-600 text-white 
+                text-[10px]
+                font-medium
+                px-1.5 py-0.5
+                rounded-full
+                shadow-md
+              "
+            >
+              {pendingCount}
+            </span>
+          )}
+        </button>
+
         <div className="pb-2">
           <AvatarMenu />
         </div>
       </aside>
 
-      {/* Create Workspace Modal */}
-      <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white">Create Workspace</DialogTitle>
-          </DialogHeader>
+      <CreateWorkspaceModal open={creating} onOpenChange={setCreating} />
 
-          <Input
-            ref={inputRef}
-            placeholder="Workspace name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={isSubmitting}
-            className="bg-zinc-950 border-zinc-800 text-white"
-          />
-
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="ghost"
-              className="text-zinc-400 hover:text-zinc-200"
-              onClick={() => {
-                setCreating(false);
-                setName("");
-              }}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              onClick={handleCreate}
-              disabled={!name.trim() || isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <InvitesModal
+        open={invitesOpen}
+        onClose={() => setInvitesOpen(false)}
+        onUpdateCount={setPendingCount}
+      />
     </>
   );
 }
