@@ -14,12 +14,13 @@ import { useMembers } from "@/context/members_context";
 import { usePresence } from "@/context/socket_context";
 import { useAuth } from "@/context/auth_context";
 
-import { Plus, Users, Hash, MessageSquare } from "lucide-react";
+import { Plus, Users, Hash, MessageSquare, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Channel, Member} from '@/types/shared'
 import InviteMembersModal from "@/components/modals/invite_members_modal";
+import WorkspaceSettingsModal from "@/components/modals/workspace_settings_modal";
 
 export default function ChannelSidebar() {
   const { currentWorkspace } = useWorkspace();
@@ -29,6 +30,7 @@ export default function ChannelSidebar() {
   const { channels, currentChannel, selectChannel, createChannel } =
     useChannel();
   const { members, selectedMember, selectMember } = useMembers();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -86,7 +88,7 @@ export default function ChannelSidebar() {
       setIsCreating(false);
     }
   }, [newChannelName, currentWorkspace, createChannel, handleSelectChannel]);
-
+  console.log('currentWorkspace', currentWorkspace);
   if (!currentWorkspace) {
     return (
       <aside className="w-64 bg-zinc-900 text-zinc-400 flex items-center justify-center">
@@ -98,10 +100,19 @@ export default function ChannelSidebar() {
   return (
     <aside className="w-64 h-screen bg-zinc-950 border-l border-zinc-800 flex flex-col">
       {/* Workspace Header */}
-      <div className="px-4 py-4 border-b border-zinc-800">
+      <div className="px-4 py-4 border-b border-zinc-800 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-white truncate">
           {currentWorkspace.name}
         </h1>
+
+        {currentWorkspace.owner._id === user?._id && (
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="p-1 hover:bg-zinc-800 rounded text-zinc-400"
+          >
+            <Settings size={16} />
+          </button>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
@@ -214,6 +225,12 @@ export default function ChannelSidebar() {
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         workspaceId={currentWorkspace._id}
+      />
+
+      <WorkspaceSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        workspace={currentWorkspace}
       />
     </aside>
   );

@@ -12,7 +12,7 @@ export const sendInvite = async (req, res) => {
     if (!workspaceId || !receiverId) {
       return res
         .status(400)
-        .json({ message: "Missing workspaceId or receiverId" });
+        .json({ message: "Missing Required fields!" });
     }
 
     if (receiverId === senderId.toString()) {

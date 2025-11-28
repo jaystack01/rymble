@@ -18,7 +18,7 @@ interface WorkspaceContextType {
   setCurrentWorkspace: (ws: Workspace | null) => void;
   fetchWorkspaces: () => Promise<void>;
   createWorkspace: (name: string) => Promise<Workspace>;
-  selectWorkspace: (ws: Workspace) => void;
+  selectWorkspace: (ws: Workspace | null) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
@@ -96,17 +96,20 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   // -----------------------------------------------------
   // Select workspace & persist it
   // -----------------------------------------------------
-  const selectWorkspace = async (ws: Workspace) => {
+  const selectWorkspace = async (ws: Workspace | null) => {
     setCurrentWorkspace(ws);
 
     if (!user || !token) return;
 
     try {
-      await updateUser({ lastWorkspaceId: ws._id });
+      await updateUser({
+        lastWorkspaceId: ws?._id ?? null,
+      });
     } catch (err) {
       console.error("Failed to update lastWorkspaceId", err);
     }
   };
+
 
   useEffect(() => {
     if (token) fetchWorkspaces();

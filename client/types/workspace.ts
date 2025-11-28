@@ -3,7 +3,7 @@ import { Channel, Member } from "./shared";
 export interface Workspace {
   _id: string;
   name: string;
-  ownerId: {
+  owner: {
     _id: string;
     username: string;
     email: string;
