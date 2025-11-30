@@ -1,6 +1,7 @@
+// src/components/channel_sidebar.tsx
 "use client";
 
-import {
+import React, {
   useState,
   useRef,
   useEffect,
@@ -14,15 +15,23 @@ import { useMembers } from "@/context/members_context";
 import { usePresence } from "@/context/socket_context";
 import { useAuth } from "@/context/auth_context";
 
-import { Plus, Users, Hash, MessageSquare, Settings } from "lucide-react";
+import {
+  Plus,
+  Users,
+  Hash,
+  MessageSquare,
+  Settings,
+  MoreHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Channel, Member} from '@/types/shared'
+import type { Channel, Member } from "@/types/shared";
 import InviteMembersModal from "@/components/modals/invite_members_modal";
 import WorkspaceSettingsModal from "@/components/modals/workspace_settings_modal";
+import ChannelSettingsModal from "@/components/modals/channel_settings_modal";
 
-export default function ChannelSidebar() {
+export default function ChannelSidebar(): React.ReactNode {
   const { currentWorkspace } = useWorkspace();
   const { onlineUsers } = usePresence();
   const { user } = useAuth();
@@ -30,11 +39,19 @@ export default function ChannelSidebar() {
   const { channels, currentChannel, selectChannel, createChannel } =
     useChannel();
   const { members, selectedMember, selectMember } = useMembers();
+
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-    const [inviteOpen, setInviteOpen] = useState(false);
+
+  // Channel settings modal state
+  const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [activeChannelName, setActiveChannelName] = useState<string | null>(
+    null
+  );
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const activeChannelRef = useRef<HTMLDivElement | null>(null);
@@ -88,7 +105,7 @@ export default function ChannelSidebar() {
       setIsCreating(false);
     }
   }, [newChannelName, currentWorkspace, createChannel, handleSelectChannel]);
-  console.log('currentWorkspace', currentWorkspace);
+
   if (!currentWorkspace) {
     return (
       <aside className="w-64 bg-zinc-900 text-zinc-400 flex items-center justify-center">
@@ -97,6 +114,12 @@ export default function ChannelSidebar() {
     );
   }
 
+  const openChannelSettings = (ch: Channel) => {
+    setActiveChannelId(ch._id);
+    setActiveChannelName(ch.name);
+    setChannelSettingsOpen(true);
+  };
+
   return (
     <aside className="w-64 h-screen bg-zinc-950 border-l border-zinc-800 flex flex-col">
       {/* Workspace Header */}
@@ -104,7 +127,6 @@ export default function ChannelSidebar() {
         <h1 className="text-lg font-semibold text-white truncate">
           {currentWorkspace.name}
         </h1>
-
         {currentWorkspace.owner._id === user?._id && (
           <button
             onClick={() => setSettingsOpen(true)}
@@ -134,23 +156,38 @@ export default function ChannelSidebar() {
           {channels.length === 0 ? (
             <EmptyItem label="No channels yet" />
           ) : (
-            channels.map((ch) => {
-              const active =
-                viewMode === "channel" && currentChannel?._id === ch._id;
-              return (
-                <SidebarItem
-                  key={ch._id}
-                  label={ch.name}
-                  icon={<Hash size={14} />}
-                  active={active}
-                  innerRef={active ? activeChannelRef : undefined}
-                  onClick={() => handleSelectChannel(ch)}
-                />
-              );
-            })
+            channels
+              .filter((c) => !c.archived)
+              .map((ch) => {
+                const active =
+                  viewMode === "channel" && currentChannel?._id === ch._id;
+                return (
+                  <div key={ch._id} className="relative group">
+                    <MemoSidebarItem
+                      label={ch.name}
+                      icon={<Hash size={14} />}
+                      active={active}
+                      innerRef={active ? activeChannelRef : undefined}
+                      onClick={() => handleSelectChannel(ch)}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openChannelSettings(ch);
+                      }}
+                      aria-label={`Channel settings ${ch.name}`}
+                      className="absolute right-2 top-0 h-full flex items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <MoreHorizontal
+                        className="text-zinc-400 hover:text-zinc-200"
+                        size={16}
+                      />
+                    </button>
+                  </div>
+                );
+              })
           )}
 
-          {/* Inline create channel */}
           {isCreating && (
             <div className="flex items-center gap-2 px-2 py-2">
               <Input
@@ -201,11 +238,9 @@ export default function ChannelSidebar() {
           ) : (
             members.map((m) => {
               const active = viewMode === "dm" && selectedMember?._id === m._id;
-
               const online = onlineUsers.includes(m._id);
-
               return (
-                <SidebarItem
+                <MemoSidebarItem
                   key={m._id}
                   label={m.displayName || m.username}
                   icon={<MessageSquare size={14} />}
@@ -232,12 +267,18 @@ export default function ChannelSidebar() {
         onClose={() => setSettingsOpen(false)}
         workspace={currentWorkspace}
       />
+
+      <ChannelSettingsModal
+        open={channelSettingsOpen}
+        onOpenChange={(v) => setChannelSettingsOpen(v)}
+        channelId={activeChannelId}
+        channelName={activeChannelName}
+      />
     </aside>
   );
 }
 
 /* ---------- COMPONENTS ---------- */
-
 function SectionHeader({
   icon,
   title,
@@ -258,6 +299,16 @@ function SectionHeader({
   );
 }
 
+interface SidebarItemProps {
+  label: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  online?: boolean;
+  suffix?: string;
+  innerRef?: RefObject<HTMLDivElement | null>;
+  onClick?: () => void;
+}
+
 function SidebarItem({
   label,
   icon,
@@ -266,20 +317,12 @@ function SidebarItem({
   suffix,
   onClick,
   innerRef,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active?: boolean;
-  online?: boolean;
-  suffix?: string;
-  innerRef?: RefObject<HTMLDivElement | null>;
-  onClick?: () => void;
-}) {
+}: SidebarItemProps) {
   return (
     <div
       ref={innerRef}
       onClick={onClick}
-      className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-all ${
+      className={`group flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-all ${
         active ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/50"
       }`}
     >
@@ -296,6 +339,9 @@ function SidebarItem({
     </div>
   );
 }
+
+// Memoized version to prevent rerenders
+const MemoSidebarItem = React.memo(SidebarItem);
 
 function EmptyItem({ label }: { label: string }) {
   return (

@@ -9,7 +9,7 @@ const workspaceSchema = new mongoose.Schema(
 );
 
 // Unique workspace name per owner
-workspaceSchema.index({ name: 1, ownerId: 1 }, { unique: true });
+workspaceSchema.index({ name: 1 }, { unique: true });
 
 const Workspace =
   mongoose.models.Workspace || mongoose.model("workspaces", workspaceSchema);

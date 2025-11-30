@@ -3,6 +3,7 @@ export interface Channel {
   name: string;
   workspaceId: string;
   createdAt: string;
+  archived: boolean;
 }
 
 export interface Member {

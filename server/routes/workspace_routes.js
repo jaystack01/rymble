@@ -22,8 +22,6 @@ router.get("/", protect, getWorkspaces);
 // Get members of a workspace
 router.get("/:id/members", protect, getWorkspaceMembers);
 
-// Workspace Settings APIs
-
 // Rename workspace
 router.patch("/:id", protect, rename_workspace);
 

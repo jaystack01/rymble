@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,9 @@ import { Workspace } from "@/types/workspace";
 import { useMembers } from "@/context/members_context";
 import { useWorkspace } from "@/context/workspace_context";
 import { useAuth } from "@/context/auth_context";
+import { useChannel } from "@/context/channel_context";
 
-interface WorkspaceSettingsModalProps {
+interface Props {
   open: boolean;
   onClose: () => void;
   workspace: Workspace;
@@ -27,16 +28,20 @@ export default function WorkspaceSettingsModal({
   open,
   onClose,
   workspace,
-}: WorkspaceSettingsModalProps) {
+}: Props) {
   const { members, refreshMembers } = useMembers();
   const { fetchWorkspaces, selectWorkspace } = useWorkspace();
   const { user } = useAuth();
-
+  const { channels, refreshChannels } = useChannel();
   const [name, setName] = useState(workspace.name);
   const [loading, setLoading] = useState(false);
   const [transferTo, setTransferTo] = useState("");
 
-  // Rename
+  const archivedChannels = useMemo(
+    () => channels.filter((c) => c.archived),
+    [channels]
+  );
+
   const handleRename = async () => {
     if (!name.trim()) return;
     setLoading(true);
@@ -51,7 +56,6 @@ export default function WorkspaceSettingsModal({
     }
   };
 
-  // Remove member
   const handleRemove = async (memberId: string) => {
     setLoading(true);
     try {
@@ -65,15 +69,15 @@ export default function WorkspaceSettingsModal({
     }
   };
 
-  // Transfer ownership
   const handleTransfer = async () => {
     if (!transferTo) return;
-
     setLoading(true);
+
     try {
       await api.post(`/workspaces/${workspace._id}/transfer-ownership`, {
         newOwnerId: transferTo,
       });
+
       await fetchWorkspaces();
       await refreshMembers();
       setTransferTo("");
@@ -84,7 +88,6 @@ export default function WorkspaceSettingsModal({
     }
   };
 
-  // Delete workspace
   const handleDelete = async () => {
     setLoading(true);
     try {
@@ -99,6 +102,18 @@ export default function WorkspaceSettingsModal({
     }
   };
 
+  const handleUnarchive = async (channelId: string) => {
+    setLoading(true);
+    try {
+      await api.patch(`/channels/${channelId}`, { archived: false });
+      await refreshChannels();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-zinc-900 border border-zinc-800 text-white max-w-lg">
@@ -106,49 +121,58 @@ export default function WorkspaceSettingsModal({
           <DialogTitle className="text-white">Workspace Settings</DialogTitle>
         </DialogHeader>
 
-        {/* Rename Workspace */}
+        {/* Rename */}
         <div className="space-y-2">
           <h3 className="text-sm text-zinc-400">Rename workspace</h3>
           <Input
-            className="bg-zinc-800"
+            className="bg-zinc-950 border-zinc-800 text-white"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <Button onClick={handleRename} disabled={loading || !name.trim()}>
+          <Button
+            onClick={handleRename}
+            disabled={loading || !name.trim()}
+            className="w-fit"
+          >
             Save
           </Button>
         </div>
 
-        {/* Members List + Remove */}
+        {/* Members */}
         <div className="mt-6 space-y-2">
           <h3 className="text-sm text-zinc-400">Members</h3>
 
-          {members.map((m: Member) => (
-            <div
-              key={m._id}
-              className="flex items-center justify-between bg-zinc-800 px-3 py-2 rounded"
-            >
-              <span>{m.displayName || m.username}</span>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {members.map((m: Member) => (
+              <div
+                key={m._id}
+                className="flex items-center justify-between bg-zinc-950 border border-zinc-800 px-3 py-2 rounded"
+              >
+                <span className="text-zinc-300">
+                  {m.displayName || m.username}
+                </span>
 
-              {m._id !== user?._id && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleRemove(m._id)}
-                >
-                  Remove
-                </Button>
-              )}
-            </div>
-          ))}
+                {m._id !== user?._id && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleRemove(m._id)}
+                    disabled={loading}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Transfer Ownership */}
+        {/* Ownership Transfer */}
         <div className="mt-6 space-y-2">
           <h3 className="text-sm text-zinc-400">Transfer Ownership</h3>
 
           <select
-            className="bg-zinc-800 w-full p-2 rounded"
+            className="bg-zinc-950 border border-zinc-800 text-white w-full p-2 rounded"
             value={transferTo}
             onChange={(e) => setTransferTo(e.target.value)}
           >
@@ -170,6 +194,33 @@ export default function WorkspaceSettingsModal({
             Transfer
           </Button>
         </div>
+
+        {/* Archived Channels */}
+        {archivedChannels.length > 0 && (
+          <div className="mt-6 space-y-2">
+            <h3 className="text-sm text-zinc-400">Archived Channels</h3>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {archivedChannels.map((ch) => (
+                <div
+                  key={ch._id}
+                  className="flex items-center justify-between bg-zinc-950 border border-zinc-800 px-3 py-2 rounded"
+                >
+                  <span className="text-zinc-300">#{ch.name}</span>
+
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleUnarchive(ch._id)}
+                    disabled={loading}
+                  >
+                    Unarchive
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Delete Workspace */}
         <div className="mt-6">

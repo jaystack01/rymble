@@ -1,3 +1,4 @@
+// src/context/channel_context.tsx
 "use client";
 
 import React, {
@@ -6,19 +7,29 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
-import api from "@/lib/api";
 import { useAuth } from "./auth_context";
 import { useWorkspace } from "./workspace_context";
 import { Channel } from "@/types/shared";
+import {
+  fetchChannels,
+  createChannelApi,
+  renameChannelApi,
+  archiveChannelApi,
+  deleteChannelApi,
+} from "@/lib/api/channels";
 
 interface ChannelContextType {
   channels: Channel[];
   currentChannel: Channel | null;
   loading: boolean;
-  fetchChannels: () => Promise<void>;
+  refreshChannels: () => Promise<void>;
   createChannel: (name: string) => Promise<Channel>;
   selectChannel: (ch: Channel | null) => Promise<void>;
+  renameChannel: (channelId: string, newName: string) => Promise<void>;
+  archiveChannel: (channelId: string) => Promise<void>;
+  deleteChannel: (channelId: string) => Promise<void>;
 }
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
@@ -31,10 +42,10 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // --------------------------------------
-  // Fetch channels for the current workspace
-  // --------------------------------------
-  const fetchChannels = async () => {
+  // ----------------------------------------------------------------------
+  // Refresh channels from server
+  // ----------------------------------------------------------------------
+  const refreshChannels = useCallback(async () => {
     if (!token || !currentWorkspace?._id) {
       setChannels([]);
       setCurrentChannel(null);
@@ -43,16 +54,21 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     try {
-      const { data } = await api.get<Channel[]>(
-        `/channels/${currentWorkspace._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const data = await fetchChannels(currentWorkspace._id, token);
+      setChannels(data);
 
-      setChannels(data || []);
+      // Keep previously selected channel if it still exists
+      if (currentChannel?._id) {
+        const found = data.find((c) => c._id === currentChannel._id);
+        if (found) {
+          setCurrentChannel(found);
+          return;
+        }
+      }
 
-      // Restore last opened context
+      // Restore last opened channel
       const last = user?.lastOpened?.[currentWorkspace._id];
-      if (last?.type === "channel" && last.id) {
+      if (last?.type === "channel") {
         const found = data.find((c) => c._id === last.id);
         if (found) {
           setCurrentChannel(found);
@@ -65,11 +81,15 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, currentWorkspace?._id, user, currentChannel?._id]);
 
-  // --------------------------------------
-  // Create a new channel
-  // --------------------------------------
+  useEffect(() => {
+    refreshChannels();
+  }, [currentWorkspace?._id]);
+
+  // ----------------------------------------------------------------------
+  // CRUD actions (optimized to avoid full refresh)
+  // ----------------------------------------------------------------------
   const createChannel = async (name: string) => {
     if (!token || !currentWorkspace?._id) {
       throw new Error("Cannot create channel");
@@ -77,53 +97,90 @@ export const ChannelProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     try {
-      const { data } = await api.post<Channel>(
-        "/channels",
-        { name, workspaceId: currentWorkspace._id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setChannels((prev) => [...prev, data]);
-      setCurrentChannel(data);
-
-      // use updateContext()
-      await updateContext(currentWorkspace._id, "channel", data._id);
-
-      return data;
+      const created = await createChannelApi(name, currentWorkspace._id, token);
+      // Append new channel locally
+      setChannels((prev) => [...prev, created]);
+      await selectChannel(created);
+      return created;
     } finally {
       setLoading(false);
     }
   };
 
-  // --------------------------------------
-  // Select channel (or clear it)
-  // --------------------------------------
   const selectChannel = async (ch: Channel | null) => {
     setCurrentChannel(ch);
-
-    if (!currentWorkspace?._id) return;
-    if (!ch || !ch._id) return;
-
-    // use updateContext()
-    await updateContext(currentWorkspace._id, "channel", ch._id);
+    if (ch?._id && currentWorkspace?._id) {
+      await updateContext(currentWorkspace._id, "channel", ch._id);
+    }
   };
 
-  // --------------------------------------
-  // Refetch when workspace changes
-  // --------------------------------------
-  useEffect(() => {
-    fetchChannels();
-  }, [currentWorkspace]);
+  const renameChannel = async (channelId: string, newName: string) => {
+    if (!token) throw new Error("Unauthorized");
+    await renameChannelApi(channelId, newName, token);
 
+    // Update channel locally
+    setChannels((prev) =>
+      prev.map((c) => (c._id === channelId ? { ...c, name: newName } : c))
+    );
+
+    if (currentChannel?._id === channelId) {
+      setCurrentChannel((prev) => (prev ? { ...prev, name: newName } : prev));
+    }
+  };
+
+  const archiveChannel = async (channelId: string) => {
+    if (!token) throw new Error("Unauthorized");
+
+    await archiveChannelApi(channelId, token);
+
+    setChannels((prev) =>
+      prev.map((c) => (c._id === channelId ? { ...c, archived: true } : c))
+    );
+
+    if (currentChannel?._id === channelId) {
+      const fallback =
+        channels.find((c) => c._id !== channelId && !c.archived) || null;
+      setCurrentChannel(fallback);
+      if (fallback && currentWorkspace?._id) {
+        await updateContext(currentWorkspace._id, "channel", fallback._id);
+      }
+    }
+  };
+
+
+  const deleteChannel = async (channelId: string) => {
+    if (!token) throw new Error("Unauthorized");
+
+    await deleteChannelApi(channelId, token);
+
+    setChannels((prev) => prev.filter((c) => c._id !== channelId));
+
+    // if deleted channel was current, select fallback
+    if (currentChannel?._id === channelId) {
+      const fallback =
+        channels.find((c) => c._id !== channelId && !c.archived) || null;
+      
+      setCurrentChannel(fallback);
+      if (fallback && currentWorkspace?._id) {
+        await updateContext(currentWorkspace._id, "channel", fallback._id);
+      }
+    }
+  };
+
+
+  // ----------------------------------------------------------------------
   return (
     <ChannelContext.Provider
       value={{
         channels,
         currentChannel,
         loading,
-        fetchChannels,
+        refreshChannels,
         createChannel,
         selectChannel,
+        renameChannel,
+        archiveChannel,
+        deleteChannel,
       }}
     >
       {children}
