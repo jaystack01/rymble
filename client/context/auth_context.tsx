@@ -26,6 +26,8 @@ interface AuthContextType {
     contextType: "channel" | "member",
     contextId: string,
   ) => Promise<void>;
+
+  loginWithToken: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -146,6 +148,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
+  const loginWithToken = async (token: string) => {
+    try {
+      setToken(token);
+      localStorage.setItem("token", token);
+
+      const { data } = await api.get("/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUser(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    } catch (err) {
+      logout();
+      throw err;
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -159,6 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         logout,
         setUser,
         updateContext,
+        loginWithToken,
       }}
     >
       {children}

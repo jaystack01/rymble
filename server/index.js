@@ -11,6 +11,7 @@ import channel_routes from "./routes/channel_routes.js";
 import workspace_routes from "./routes/workspace_routes.js";
 import user_routes from "./routes/user_routes.js";
 import invite_routes from "./routes/invite_routes.js";
+import demo_routes from "./routes/demo_routes.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/channels", channel_routes);
 app.use("/api/workspaces", workspace_routes);
 app.use("/api/users", user_routes);
 app.use("/api/invites", invite_routes);
+app.use("/api/demo", demo_routes);
 
 const server = http.createServer(app);
 

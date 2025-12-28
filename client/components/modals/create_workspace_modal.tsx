@@ -69,7 +69,7 @@ export default function CreateWorkspaceModal({ open, onOpenChange }: Props) {
         <div className="flex justify-end gap-2 mt-4">
           <Button
             variant="ghost"
-            className="text-zinc-400 hover:text-zinc-200"
+            className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
             onClick={() => {
               onOpenChange(false);
               setName("");
