@@ -14,6 +14,8 @@ import { useAuth } from "@/context/auth_context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+import AuthHeader from "@/components/auth_header";
+
 const LoginSchema = z.object({
   email: z.string().email({ message: "Enter a valid email" }),
   password: z.string().min(1, { message: "Password is required" }),
@@ -47,7 +49,6 @@ export default function LoginPage() {
     } catch (err) {
       const parsed = parseFieldError(err);
       if (parsed.field && parsed.field !== "form") {
-        // map backend field to form field
         setError(parsed.field as keyof LoginValues, {
           message: parsed.message,
         });
@@ -58,43 +59,92 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white px-4">
-      <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg">
-        <h2 className="text-2xl font-semibold text-center mb-4">Sign in</h2>
+    <>
+      <main className="min-h-screen bg-zinc-950 text-zinc-200 flex flex-col">
+        <AuthHeader />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Email</label>
-            <Input {...register("email")} />
-            {errors.email && (
-              <p className="text-xs text-red-400 mt-1">
-                {errors.email.message}
+        <section className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-md">
+            {/* Context header */}
+            <div className="mb-8 text-center">
+              <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+                Sign in to Rymble
+              </h1>
+
+              <p className="mt-2 text-sm text-zinc-400">
+                Access your workspaces and continue your conversations.
               </p>
-            )}
+            </div>
+
+            {/* Card */}
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    Email
+                  </label>
+                  <Input {...register("email")} autoComplete="email" />
+                  {errors.email && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-zinc-400">
+                    Password
+                  </label>
+                  <Input
+                    type="password"
+                    {...register("password")}
+                    autoComplete="current-password"
+                  />
+                  {errors.password && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  {isSubmitting ? "Signing in..." : "Sign in"}
+                </Button>
+              </form>
+
+              {/* Divider */}
+              <div className="my-6 border-t border-zinc-800" />
+
+              {/* Secondary actions */}
+              <div className="space-y-3 text-center text-sm">
+                <p className="text-zinc-400">
+                  Don&apos;t have an account?{" "}
+                  <Link
+                    href="/register"
+                    className="text-zinc-200 hover:underline"
+                  >
+                    Create one
+                  </Link>
+                </p>
+
+                <p className="text-zinc-500">
+                  Just exploring?{" "}
+                  <Link
+                    href="/demo"
+                    className="text-zinc-400 hover:text-zinc-200 transition"
+                  >
+                    Enter demo workspace
+                  </Link>
+                </p>
+              </div>
+            </div>
           </div>
-
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Password</label>
-            <Input type="password" {...register("password")} />
-            {errors.password && (
-              <p className="text-xs text-red-400 mt-1">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </Button>
-
-          <p className="text-sm text-gray-400 text-center mt-2">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-blue-500 hover:underline">
-              Register
-            </Link>
-          </p>
-        </form>
-      </div>
-    </div>
+        </section>
+      </main>
+    </>
   );
 }
