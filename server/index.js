@@ -19,6 +19,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "rymble-server",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
 // Routes
 app.use("/api/auth", auth_routes);
 app.use("/api/messages", message_routes);
