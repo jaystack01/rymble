@@ -1,38 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 import { useWorkspace } from "@/context/workspace_context";
-import { useAuth } from "@/context/auth_context";
 import AvatarMenu from "@/components/ui/avatar_button";
-import api from "@/lib/api";
 
 import InvitesModal from "@/components/modals/invites_modal";
 import CreateWorkspaceModal from "@/components/modals/create_workspace_modal";
 
 export default function WorkspaceSidebar() {
-  const { user } = useAuth();
-  const { workspaces, currentWorkspace, selectWorkspace } = useWorkspace();
+  const { workspaces, currentWorkspace, selectWorkspace, pendingInvitesCount } =
+    useWorkspace();
 
   const [creating, setCreating] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
-
-  // load user invites count
-  useEffect(() => {
-    async function loadInvites() {
-      try {
-        const res = await api.get("/invites/received");
-        setPendingCount(res.data.length || 0);
-      } catch {
-        setPendingCount(0);
-      }
-    }
-    loadInvites();
-  }, []);
 
   return (
     <>
@@ -59,7 +43,7 @@ export default function WorkspaceSidebar() {
               );
             })}
 
-            {/* Create new workspace button */}
+            {/* Create workspace */}
             <button
               onClick={() => setCreating(true)}
               className="w-12 h-12 flex items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 transition-all"
@@ -70,7 +54,7 @@ export default function WorkspaceSidebar() {
           </div>
         </ScrollArea>
 
-        {/* Workspace Invites Button */}
+        {/* Invites button */}
         <button
           onClick={() => setInvitesOpen(true)}
           className="
@@ -113,12 +97,12 @@ export default function WorkspaceSidebar() {
             </svg>
           </div>
 
-          {pendingCount > 0 && (
+          {pendingInvitesCount > 0 && (
             <span
               className="
                 absolute
                 -top-1 -right-1
-                bg-red-600 text-white 
+                bg-red-600 text-white
                 text-[10px]
                 font-medium
                 px-1.5 py-0.5
@@ -126,7 +110,7 @@ export default function WorkspaceSidebar() {
                 shadow-md
               "
             >
-              {pendingCount}
+              {pendingInvitesCount}
             </span>
           )}
         </button>
@@ -138,11 +122,7 @@ export default function WorkspaceSidebar() {
 
       <CreateWorkspaceModal open={creating} onOpenChange={setCreating} />
 
-      <InvitesModal
-        open={invitesOpen}
-        onClose={() => setInvitesOpen(false)}
-        onUpdateCount={setPendingCount}
-      />
+      <InvitesModal open={invitesOpen} onClose={() => setInvitesOpen(false)} />
     </>
   );
 }

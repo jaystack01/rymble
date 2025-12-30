@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,52 +9,24 @@ import {
   DialogTitle,
   DialogHeader,
 } from "@/components/ui/dialog";
-import api from "@/lib/api";
 import { toast } from "sonner";
-import type { AxiosError } from "axios";
+import api from "@/lib/api";
 import { useWorkspace } from "@/context/workspace_context";
-
-interface Invite {
-  _id: string;
-  workspaceId?: { name?: string };
-  sender?: { username?: string };
-}
 
 interface InvitesModalProps {
   open: boolean;
   onClose: () => void;
-  onUpdateCount?: (count: number) => void;
 }
 
-export default function InvitesModal({
-  open,
-  onClose,
-  onUpdateCount,
-}: InvitesModalProps) {
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(false);
+export default function InvitesModal({ open, onClose }: InvitesModalProps) {
   const [processing, setProcessing] = useState<string | null>(null);
-  const { fetchWorkspaces, setCurrentWorkspace } = useWorkspace();
 
-  const loadInvites = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<Invite[]>("/invites/received");
-      const data = res.data || [];
-      setInvites(data);
-      onUpdateCount?.(data.length);
-    } catch (err: unknown) {
-      const apiErr = err as AxiosError<{ message?: string }>;
-      toast.error(apiErr.response?.data?.message || "Failed to load invites");
-    }
-    setLoading(false);
-  }, [onUpdateCount]);
-
-  // Prevent synchronous state call directly inside the effect
-  useEffect(() => {
-    if (!open) return;
-    Promise.resolve().then(loadInvites);
-  }, [open, loadInvites]);
+  const {
+    pendingInvites,
+    fetchWorkspaces,
+    setCurrentWorkspace,
+    refreshInvites,
+  } = useWorkspace();
 
   const act = async (inviteId: string, action: "accept" | "decline") => {
     setProcessing(inviteId);
@@ -62,14 +34,8 @@ export default function InvitesModal({
     try {
       const res = await api.post(`/invites/${inviteId}/${action}`);
 
-      // compute new list
-      const updated = invites.filter((i) => i._id !== inviteId);
-
-      // update state safely
-      setInvites(updated);
-
-      // update parent safely (NOT inside setState callback)
-      onUpdateCount?.(updated.length);
+      // refresh provider state
+      await refreshInvites();
 
       if (action === "accept") {
         await fetchWorkspaces();
@@ -81,38 +47,25 @@ export default function InvitesModal({
       toast.success(
         action === "accept" ? "Invite accepted" : "Invite declined"
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to process invite");
+    } finally {
+      setProcessing(null);
     }
-
-    setProcessing(null);
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent
-        className="
-          bg-zinc-900 
-          border border-zinc-800 
-          text-white 
-          max-w-md 
-          p-5 
-        "
-      >
+      <DialogContent className="bg-zinc-900 border border-zinc-800 text-white max-w-md p-5">
         <DialogHeader>
           <DialogTitle>Invitations</DialogTitle>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="animate-spin text-zinc-400" size={24} />
-          </div>
-        ) : invites.length === 0 ? (
+        {pendingInvites.length === 0 ? (
           <p className="text-center text-zinc-500 py-6">No pending invites</p>
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-            {invites.map((inv) => (
+            {pendingInvites.map((inv) => (
               <div
                 key={inv._id}
                 className="flex items-center justify-between bg-zinc-800 p-3 rounded-lg"

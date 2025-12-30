@@ -11,15 +11,27 @@ import api from "@/lib/api";
 import { useAuth } from "./auth_context";
 import { Workspace } from "@/types/workspace";
 
+interface Invite {
+  _id: string;
+  workspaceId?: { name?: string };
+  sender?: { username?: string };
+}
+
 interface WorkspaceContextType {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   loading: boolean;
+
+  pendingInvitesCount: number;
+  refreshInvites: () => Promise<void>;
+  pendingInvites: Invite[];
+
   setCurrentWorkspace: (ws: Workspace | null) => void;
   fetchWorkspaces: () => Promise<void>;
   createWorkspace: (name: string) => Promise<Workspace>;
   selectWorkspace: (ws: Workspace | null) => void;
 }
+
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
   undefined
@@ -33,6 +45,9 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     null
   );
   const [loading, setLoading] = useState<boolean>(true);
+  const [pendingInvitesCount, setPendingInvitesCount] = useState(0);
+  const [pendingInvites, setPendingInvites] = useState<Invite[]>([]);
+
 
   // -----------------------------------------------------
   // Fetch all workspaces and restore the last selected one
@@ -81,8 +96,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
 
       const ws = data.workspace ?? data;
 
-      setWorkspaces((prev) => [...prev, ws]);
-      setCurrentWorkspace(ws);
+      fetchWorkspaces();
 
       // update last workspace
       await updateUser({ lastWorkspaceId: ws._id });
@@ -111,8 +125,27 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
+  const fetchInvites = async () => {
+    if (!token) return;
+
+    try {
+      const res = await api.get("/invites/received", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPendingInvites(res.data || []);
+      setPendingInvitesCount(res.data.length || 0);
+    } catch {
+      setPendingInvitesCount(0);
+    }
+  };
+
+
+
   useEffect(() => {
-    if (token) fetchWorkspaces();
+    if (token) {
+      fetchWorkspaces();
+      fetchInvites();
+    }
   }, [token]);
 
   return (
@@ -125,6 +158,9 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         fetchWorkspaces,
         createWorkspace,
         selectWorkspace,
+        pendingInvitesCount,
+        refreshInvites: fetchInvites,
+        pendingInvites,
       }}
     >
       {children}

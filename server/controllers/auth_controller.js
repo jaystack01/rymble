@@ -155,14 +155,14 @@ export const login_user = async (req, res) => {
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res
-        .status(401)
+        .status(400)
         .json({ success: false, field: "email", message: "Email not found" });
     }
 
     const match = await user.matchPassword(password);
     if (!match) {
       return res
-        .status(401)
+        .status(400)
         .json({
           success: false,
           field: "password",

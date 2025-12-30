@@ -14,6 +14,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Redirect effect
   useEffect(() => {
+    console.log("ProtectedRoute useEffect run");
     if (!loading && !user) {
       router.replace("/login");
     }
