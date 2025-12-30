@@ -33,6 +33,7 @@ interface SocketContextType {
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const { token } = useAuth();
@@ -49,7 +50,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!token) return;
 
-    const s = io("http://localhost:5000", {
+    const s = io(SOCKET_URL, {
       auth: { token },
       transports: ["websocket"],
     });
