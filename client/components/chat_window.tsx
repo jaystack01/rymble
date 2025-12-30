@@ -19,7 +19,7 @@ export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // detect DM or channel
+  // detect DM or channel 
   const isDM = !!selectedMember;
 
   const roomId = isDM
